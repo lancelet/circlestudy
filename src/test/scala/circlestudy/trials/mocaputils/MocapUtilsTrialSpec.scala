@@ -26,10 +26,7 @@ class MocapUtilsTrialSpec extends FunSpec {
     it ("should correctly read a TRC file") {
       val trcFile: File = {
         val url: URL = getClass.getResource("testFile.trc")
-        val file: File = new File(url.toURI.getPath)
-        println(file.getAbsolutePath)
-        println(file.exists)
-        file
+        new File(url.toURI.getPath)
       }
       MocapUtilsTrial.fromTRCFile(trcFile) fold (
         error => fail(error),
