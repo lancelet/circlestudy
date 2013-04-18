@@ -4,6 +4,8 @@ import org.scalatest.FunSpec
 import java.net.URL
 import java.io.File
 
+import circlestudy.Vec3
+
 /**
  * Test for circlestudy.trials.mocaputils.MocapUtilsTrial
  */
@@ -41,11 +43,11 @@ class MocapUtilsTrialSpec extends FunSpec {
 
           // check head marker
           val expectedCoords = Vector(
-            trial.Vec3(1247.12988, 649.67725, 1446.53552),
-            trial.Vec3(1247.26807, 650.12024, 1447.11145),
-            trial.Vec3(1246.90698, 650.64636, 1447.61157),
-            trial.Vec3(1246.85059, 650.76019, 1447.70544),
-            trial.Vec3(1246.60803, 651.06555, 1447.99841)
+            Vec3(1247.12988, 649.67725, 1446.53552),
+            Vec3(1247.26807, 650.12024, 1447.11145),
+            Vec3(1246.90698, 650.64636, 1447.61157),
+            Vec3(1246.85059, 650.76019, 1447.70544),
+            Vec3(1246.60803, 651.06555, 1447.99841)
           ).map(Some(_)).toList
           val headMarker = trial.markers.find(_.name == "Head").getOrElse(fail("Head marker not found!"))
           assert(headMarker.co === expectedCoords)

@@ -3,6 +3,7 @@ package circlestudy.trials.mocaputils
 import java.io.File
 import scalaz.Validation
 
+import circlestudy.Vec3
 import circlestudy.trials.Trial
 import mocaputils.{GappedMarker, TRCData, TRCReader, Vec3 => MUVec3}
 import scala.collection.immutable.IndexedSeq
