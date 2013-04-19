@@ -3,3 +3,6 @@
 project/target
 target
 .history
+.cache
+.classpath
+.project
