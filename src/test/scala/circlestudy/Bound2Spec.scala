@@ -28,6 +28,12 @@ class Bound2Spec extends FunSpec {
       intercept [IllegalArgumentException] { Bound2(-1.0,  1.0, -2.0, -2.1) }
     }
     
+    it ("should correctly compute width and height") {
+      val b = Bound2(-1.0, 2.0, -3.0, 4.0)
+      assert(b.width  === 3.0)
+      assert(b.height === 7.0)
+    }
+    
   }
   
 }

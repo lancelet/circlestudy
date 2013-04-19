@@ -4,6 +4,9 @@ trait Bound2 {
   def min: Vec2
   def max: Vec2
   
+  def width: Double  = max.x - min.x
+  def height: Double = max.y - min.y
+  
   require(min.x <= max.x, "minimum x must be <= maximum x")
   require(min.y <= max.y, "minimum y must be <= maximum y")
 }
