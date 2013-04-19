@@ -10,6 +10,8 @@ trait Vec3 {
     val v = obj.asInstanceOf[Vec3]
     (v.x == x) && (v.y == y) && (v.z == z)
   } else false
+
+  override def hashCode(): Int = x.hashCode * 41 * 41 + y.hashCode * 41 + z.hashCode
 }
 
 object Vec3 {
