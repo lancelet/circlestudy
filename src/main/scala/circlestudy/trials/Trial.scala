@@ -12,9 +12,16 @@ import circlestudy.trials.mocaputils.MocapUtilsTrial
  */
 trait Trial {
 
+  import Trial._
+  
   def markers: IndexedSeq[MarkerWithGaps]
 
   def bounds: Bound3 = Bound3(markers map(_.bounds) withFilter(_.isDefined) map(_.get))
+  
+}
+
+object Trial {
+  def fromTRCFile(trcFile: File): Validation[String, Trial] = MocapUtilsTrial.fromTRCFile(trcFile)
 
   /** Marker, which may have gaps in its sampling. */
   trait MarkerWithGaps {
@@ -38,9 +45,4 @@ trait Trial {
     /** Bounding box (does not exist if the marker is totally empty) */
     def bounds: Option[Bound3]
   }
-
-}
-
-object Trial {
-  def fromTRCFile(trcFile: File): Validation[String, Trial] = MocapUtilsTrial.fromTRCFile(trcFile)
 }
