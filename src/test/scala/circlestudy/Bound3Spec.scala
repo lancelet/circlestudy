@@ -1,6 +1,7 @@
 package circlestudy
 
 import org.scalatest.FunSpec
+import scala.collection.immutable._
 
 /**
  * Test for circlestudy.Bound3
@@ -25,10 +26,17 @@ class Bound3Spec extends FunSpec {
       assert(b.max === Vec3(1.0, 2.0, 3.0))
     }
 
-    it ("creation should fail when any of the maximum values is less than the minimum values") {
+    it ("should fail creation when any of the maximum values is less than the minimum values") {
       intercept[IllegalArgumentException] { Bound3(-1.0, -1.1, -2.0,  2.0, -3.0,  3.0) }
       intercept[IllegalArgumentException] { Bound3(-1.0,  1.0, -2.0, -2.1, -3.0,  3.0) }
       intercept[IllegalArgumentException] { Bound3(-1.0,  1.0, -2.0,  2.0, -3.0, -3.1) }
+    }
+
+    it ("should allow creation from a sequence of bounding boxes") {
+      val boundSeq = Seq(Bound3(-1.0, 1.0, -2.0, 2.0, -3.0, 3.0), Bound3(-1.0, 1.5, -2.5, 1.0, -3.5, 3.5))
+      val b = Bound3(boundSeq)
+      assert(b.min === Vec3(-1.0, -2.5, -3.5))
+      assert(b.max === Vec3( 1.5,  2.0,  3.5))
     }
 
   }

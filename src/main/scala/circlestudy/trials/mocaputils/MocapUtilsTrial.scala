@@ -3,7 +3,7 @@ package circlestudy.trials.mocaputils
 import java.io.File
 import scalaz.Validation
 
-import circlestudy.Vec3
+import circlestudy.{Bound3, Vec3}
 import circlestudy.trials.Trial
 import mocaputils.{GappedMarker, TRCData, TRCReader, Vec3 => MUVec3}
 import scala.collection.immutable.IndexedSeq
@@ -31,6 +31,16 @@ class MocapUtilsTrial(trcData: TRCData) extends Trial {
     def xs: IndexedSeq[Option[Double]] = marker.xs
     def ys: IndexedSeq[Option[Double]] = marker.ys
     def zs: IndexedSeq[Option[Double]] = marker.zs
+    def exists: Boolean = marker.exists
+    
+    def bounds: Option[Bound3] = {
+      if (exists) {
+    	val xExists = xs.withFilter(_.isDefined).map(_.get)
+    	val yExists = ys.withFilter(_.isDefined).map(_.get)
+        val zExists = zs.withFilter(_.isDefined).map(_.get)
+        Some(Bound3(xExists.min, xExists.max, yExists.min, yExists.max, zExists.min, zExists.max))
+      } else None
+    }
   }
 
   def markers: IndexedSeq[MarkerWithGaps] = trcData.markers.map(new MCUMarkerWithGaps(_))
