@@ -18,7 +18,8 @@ object Resolvers {
 
 object Dependencies {
   val allDependencies: Seq[ModuleID] = Seq(
-    "org.scalatest" %% "scalatest" % "1.9.1" % "test"
+    "org.apache.commons"  % "commons-math3" %   "3.2",
+    "org.scalatest"      %% "scalatest"     % "1.9.1" % "test"
   )
 }
 
