@@ -9,6 +9,7 @@ import java.awt.Color
 import java.awt.RenderingHints
 import circlestudy.Bound2
 import circlestudy.Bound3
+import circlestudy.trials.Trial.MarkerWithGaps
 
 object CircleRender {
 
@@ -60,7 +61,8 @@ object CircleRender {
     Bound2(bound.min.x - dx, bound.max.x + dx, bound.min.y - dy, bound.max.y + dy)
   }
   
-  def render2DMarkerTrails(trial: Trial, g2d: Graphics2D, width: Int, height: Int) {
+  def render2DMarkerTrails(trial: Trial, g2d: Graphics2D, width: Int, height: Int,
+    namesOfMarkersToPlot: Option[Set[String]] = None) {
 
     /** Finds the sequences of contiguous coordinates within an IndexedSeq of optionally-defined coordinates. */
     def contiguousCoordinates(coords: IndexedSeq[Option[Vec3]]): Seq[IndexedSeq[Vec3]] = {
@@ -86,9 +88,14 @@ object CircleRender {
     val b2dConformed: Bound2 = conformBoundToAspect(b2d, width, height)
     setViewport(g2d, width, height, b2dConformed)
     
+    // fetch the markers to render
+    val markersToPlot: Seq[MarkerWithGaps] = namesOfMarkersToPlot map { nameSet =>
+      trial.markers.filter(_.exists).filter(nameSet contains _.name)
+    } getOrElse trial.markers.filter(_.exists)
+    
     // render marker paths
     g2d.setColor(TrekColors.Orange)    
-    for (marker <- trial.markers.withFilter(_.exists)) {
+    for (marker <- markersToPlot) {
       for (contigCoords <- contiguousCoordinates(marker.co)) {
         val path = new Path2D.Double()
         path.moveTo(contigCoords.head.x, contigCoords.head.y)

@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import java.io.File
 import java.awt.Graphics2D
+import scala.collection.immutable._
 import circlestudy.render.CircleRender
 
 object CircleCenterPrototype extends App {
@@ -31,7 +32,8 @@ object CircleCenterPrototype extends App {
   val g2d: Graphics2D = bufferedImage.getGraphics().asInstanceOf[Graphics2D]
   
   // Render the marker trails onto the image
-  CircleRender.render2DMarkerTrails(trial, g2d, bufferedImage.getWidth, bufferedImage.getHeight)
+  CircleRender.render2DMarkerTrails(trial, g2d, bufferedImage.getWidth, bufferedImage.getHeight,
+      Some(Set("T6")))
   
   // Save the BufferedImage as a PNG
   g2d.dispose()
