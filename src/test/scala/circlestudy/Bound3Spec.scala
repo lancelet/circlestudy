@@ -38,6 +38,12 @@ class Bound3Spec extends FunSpec {
       assert(b.min === Vec3(-1.0, -2.5, -3.5))
       assert(b.max === Vec3( 1.5,  2.0,  3.5))
     }
+    
+    it ("should allow conversion of Bound3 to Bound2 by discarding z") {
+      val b2 = Bound3(-1.0, 1.0, -2.0, 2.0, -3.0, 3.0).toBound2
+      assert(b2.min === Vec2(-1.0, -2.0))
+      assert(b2.max === Vec2( 1.0,  2.0))
+    }
 
   }
 

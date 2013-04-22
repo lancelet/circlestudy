@@ -56,21 +56,22 @@ object MultiCircleFit {
           // p is laid out as (xc, yc, r1, r2, ..., rn)
           val xc = p(0)
           val yc = p(1)
-          val errors = for (i <- 0 until markers.length) yield {
+          val markerErrors = (0 until markers.length) map { i =>
             val marker = markers(i)
             val w      = weights(i)
             val r      = p(i + 2)
             markerError(marker, xc, yc, r) * w
           }
-          errors.sum / (weights.sum.toDouble)
+          markerErrors.sum / (weights.sum.toDouble)
         }
       }
     )
     
     // Optimizer
-    val optimizer = new BOBYQAOptimizer(markers.length + 2 + 2)
-    val maxEval = new MaxEval(500 * markers.length)
-    val initialGuess = new InitialGuess((Seq(0.0, 0.0) ++: Seq.fill(markers.length)(1000.0)).toArray)
+    val nParams = markers.length + 2
+    val optimizer = new BOBYQAOptimizer(nParams + 2)
+    val maxEval = new MaxEval(100000 * markers.length)
+    val initialGuess = new InitialGuess((Seq(1050.0, -3150.0) ++: Seq.fill(markers.length)(1000.0)).toArray)
     val goal: GoalType = GoalType.MINIMIZE
     val bounds: SimpleBounds = SimpleBounds.unbounded(markers.length + 2)
     

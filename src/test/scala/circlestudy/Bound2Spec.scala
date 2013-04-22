@@ -34,6 +34,26 @@ class Bound2Spec extends FunSpec {
       assert(b.height === 7.0)
     }
     
+    it ("should allow adding new vectors to the bounds") {
+      val b = Bound2(-1.0, 1.0, -2.0, 3.0)
+      
+      val b1 = b.addVec2(Vec2(1.5, -2.5))
+      assert(b1.min.x === -1.0)
+      assert(b1.min.y === -2.5)
+      assert(b1.max.x ===  1.5)
+      assert(b1.max.y ===  3.0)
+    }
+
+    it ("should allow adding new bounds") {
+      val b = Bound2(-1.0, 1.0, -2.0, 2.0)
+      
+      val b1 = b.addBound2(Bound2(-1.5, 1.5, -2.0, 1.9))
+      assert(b1.min.x === -1.5)
+      assert(b1.min.y === -2.0)
+      assert(b1.max.x ===  1.5)
+      assert(b1.max.y ===  2.0)
+    }
+    
   }
   
 }

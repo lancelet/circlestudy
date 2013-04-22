@@ -5,10 +5,14 @@ import circlestudy.trials.Trial.MarkerWithGaps
 import circlestudy.{Vec2, Vec3}
 
 /** Represents a Trial.MarkerWithGaps as a MultiCircleFit.Marker. */
-final class MarkerWithGapsAsMCFMarker(m: MarkerWithGaps) extends MultiCircleFit.Marker {
-  lazy val co2XY: Array[Double] = m.co.withFilter(_.isDefined).map(_.get).map(v => Seq(v.x, v.y)).flatten.toArray
+final class MarkerWithGapsAsMCFMarker(m: MarkerWithGaps, takeEvery: Int) extends MultiCircleFit.Marker {
+  lazy val co2XY: Array[Double] = {
+    m.co.filter(_.isDefined).map(_.get).zipWithIndex.filter(vi => vi._2 % takeEvery == 0).map { vi =>
+      Seq(vi._1.x, vi._1.y)}.flatten.toArray
+  }
 }
 
 object MarkerWithGapsAsMCFMarker {
-  def apply(m: MarkerWithGaps): MarkerWithGapsAsMCFMarker = new MarkerWithGapsAsMCFMarker(m)
+  def apply(m: MarkerWithGaps, takeEvery: Int = 1): MarkerWithGapsAsMCFMarker =
+    new MarkerWithGapsAsMCFMarker(m, takeEvery)
 }

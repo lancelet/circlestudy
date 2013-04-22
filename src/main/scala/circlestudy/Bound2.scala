@@ -9,6 +9,12 @@ trait Bound2 {
   
   require(min.x <= max.x, "minimum x must be <= maximum x")
   require(min.y <= max.y, "minimum y must be <= maximum y")
+  
+  def addVec2(v: Vec2): Bound2 = Bound2(
+    Vec2(if (v.x < min.x) v.x else min.x, if (v.y < min.y) v.y else min.y),
+    Vec2(if (v.x > max.x) v.x else max.x, if (v.y > max.y) v.y else max.y)
+  )
+  def addBound2(b: Bound2): Bound2 = addVec2(b.min).addVec2(b.max)
 }
 
 object Bound2 {

@@ -9,6 +9,8 @@ trait Bound3 {
   require(min.x <= max.x, "minimum x must be <= maximum x")
   require(min.y <= max.y, "minimum y must be <= maximum y")
   require(min.z <= max.z, "minimum z must be <= maximum z")
+  
+  def toBound2: Bound2 = Bound2(min.x, max.x, min.y, max.y)
 }
 
 object Bound3 {
