@@ -6,7 +6,7 @@ import javax.imageio.ImageIO
 import java.io.File
 import java.awt.Graphics2D
 import scala.collection.immutable._
-import circlestudy.render.CircleRender
+import circlestudy.render.OldCircleRender
 import circlestudy.optim.MultiCircleFit
 import circlestudy.optim.MarkerWithGapsAsMCFMarker
 
@@ -41,11 +41,11 @@ object CircleCenterPrototype extends App {
   val g2d: Graphics2D = bufferedImage.getGraphics().asInstanceOf[Graphics2D]
   
   // Render the marker trails onto the image
-  CircleRender.render2DMarkerTrails(trial, g2d, bufferedImage.getWidth, bufferedImage.getHeight,
+  OldCircleRender.render2DMarkerTrails(trial, g2d, bufferedImage.getWidth, bufferedImage.getHeight,
       Some(Set("T6")))
   
   // Render fitted circles
-  CircleRender.renderCircles(xc, yc, rs, g2d)
+  OldCircleRender.renderCircles(xc, yc, rs, g2d)
       
   // Save the BufferedImage as a PNG
   g2d.dispose()

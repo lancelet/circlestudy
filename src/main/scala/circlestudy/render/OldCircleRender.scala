@@ -12,7 +12,7 @@ import circlestudy.Bound3
 import circlestudy.trials.Trial.MarkerWithGaps
 import java.awt.geom.Ellipse2D
 
-object CircleRender {
+object OldCircleRender {
 
   /**
    * Sets the viewport visible in a Graphics2D object to a specified bounding box.
