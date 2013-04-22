@@ -7,6 +7,8 @@ import java.io.File
 import java.awt.Graphics2D
 import scala.collection.immutable._
 import circlestudy.render.CircleRender
+import circlestudy.optim.MultiCircleFit
+import circlestudy.optim.MarkerWithGapsAsMCFMarker
 
 object CircleCenterPrototype extends App {
   
@@ -26,6 +28,13 @@ object CircleCenterPrototype extends App {
     )
   }
   
+  // Try optimizing the T6 marker
+  val marker = MarkerWithGapsAsMCFMarker(trial.markers.find(_.name == "T6").get)
+  val (xc, yc, rs) = MultiCircleFit.fit(IndexedSeq(marker), IndexedSeq(1.0))
+  println(s"xc    = ${xc}")
+  println(s"yc    = ${yc}")
+  println(s"rs(0) = ${rs(0)}")
+  
   // Create a BufferedImage to render the trial data
   val imageSize: Int = 1024
   val bufferedImage: BufferedImage = new BufferedImage(imageSize, imageSize, BufferedImage.TYPE_INT_RGB)
@@ -35,6 +44,9 @@ object CircleCenterPrototype extends App {
   CircleRender.render2DMarkerTrails(trial, g2d, bufferedImage.getWidth, bufferedImage.getHeight,
       Some(Set("T6")))
   
+  // Render fitted circles
+  CircleRender.renderCircles(xc, yc, rs, g2d)
+      
   // Save the BufferedImage as a PNG
   g2d.dispose()
   ImageIO.write(bufferedImage, "PNG", new File("output/prototyping/circlecenterprototype.png"))

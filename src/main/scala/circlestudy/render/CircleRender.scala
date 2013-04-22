@@ -10,6 +10,7 @@ import java.awt.RenderingHints
 import circlestudy.Bound2
 import circlestudy.Bound3
 import circlestudy.trials.Trial.MarkerWithGaps
+import java.awt.geom.Ellipse2D
 
 object CircleRender {
 
@@ -39,11 +40,13 @@ object CircleRender {
     val boundAspect = bound.width / bound.height
     
     if (boundAspect > frameAspect) {
-      val f = boundAspect / frameAspect
+      //val f = boundAspect / frameAspect
+      val f = boundAspect - frameAspect
       val shift = 0.5 * bound.height * f
       Bound2(bound.min.x, bound.max.x, bound.min.y - shift, bound.max.y + shift)
     } else {
-      val f = frameAspect / boundAspect
+      //val f = frameAspect / boundAspect
+      val f = frameAspect - boundAspect
       val shift = 0.5 * bound.width * f
       Bound2(bound.min.x - shift, bound.max.x + shift, bound.min.y, bound.max.y)
     }
@@ -61,6 +64,9 @@ object CircleRender {
     Bound2(bound.min.x - dx, bound.max.x + dx, bound.min.y - dy, bound.max.y + dy)
   }
   
+  /**
+   * Renders the trails of markers in 2D.
+   */
   def render2DMarkerTrails(trial: Trial, g2d: Graphics2D, width: Int, height: Int,
     namesOfMarkersToPlot: Option[Set[String]] = None) {
 
@@ -104,6 +110,16 @@ object CircleRender {
         }
         g2d.draw(path)
       }
+    }
+  }
+
+  /**
+   * Renders fitted circles in 2D.  (Assumes coordinate system of g2d is already set up.)
+   */
+  def renderCircles(xc: Double, yc: Double, rs: IndexedSeq[Double], g2d: Graphics2D) {
+    g2d.setColor(TrekColors.Blue)
+    for (r <- rs) {
+      g2d.draw(new Ellipse2D.Double(xc - r, yc - r, 2.0*r, 2.0*r))
     }
   }
   
