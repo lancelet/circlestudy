@@ -4,7 +4,7 @@ import sbt.Keys._
 object BuildSettings {
   val buildSettings: Seq[Setting[_]] = Defaults.defaultSettings ++ Seq(
     organization := "com.github.circlestudy",
-    scalaVersion := "2.10.1",
+    scalaVersion := "2.10.2",
     version      := "0.1"
   )
 }
@@ -37,8 +37,12 @@ object CircleStudyBuild extends Build {
     )
   ) dependsOn (
     mocaputils
+  ) dependsOn (
+    scalac3d
   )
 
   val mocaputilsUri = uri("git://github.com/lancelet/mocaputils.git")
   lazy val mocaputils = RootProject(mocaputilsUri)
+  val scalaC3DUri = uri("git://github.com/lancelet/scala-c3d.git")
+  lazy val scalac3d = RootProject(scalaC3DUri)
 }
