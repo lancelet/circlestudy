@@ -40,20 +40,22 @@ object TRCTrialDatabase extends TrialDatabase {
   
   def getTrial(metadata: Metadata): Validation[String, Trial] = {
     val curveDir = metadata.curvature match {
-      case Straight  => "Straight"
-      case Circle(_) => "Circle"
+      case Straight  => "straight"
+      case Circle(_) => "hard surface circle"
     }
     val curveFile = metadata.curvature match {
       case Straight      => "straight"
       case Circle(Left)  => "circle_left"
       case Circle(Right) => "circle_right"
     }
-    var gaitTxt = metadata.gait match {
+    val gaitTxt = metadata.gait match {
       case Walk => "walk"
       case Trot => "trot"
     }
-    val dirName = s"data/Horse${metadata.horseNumber}/${curveDir}"
+    val dirName = s"data/Horse${metadata.horseNumber}/Horse ${metadata.horseNumber} ${curveDir}"
     val fileName = s"Horse${metadata.horseNumber}_${curveFile}_${gaitTxt}_${metadata.trialNumber}.trc"
+    val fullPath = s"${dirName}/${fileName}"
+    println(s"fullPath = $fullPath")
     
     Trial.fromTRCFile(new File(s"${dirName}/${fileName}"))
   }

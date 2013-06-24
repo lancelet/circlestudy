@@ -18,8 +18,9 @@ object Resolvers {
 
 object Dependencies {
   val allDependencies: Seq[ModuleID] = Seq(
-    "org.apache.commons"  % "commons-math3" %   "3.2",
-    "org.scalatest"      %% "scalatest"     % "1.9.1" % "test"
+    "org.apache.commons"        % "commons-math3" %                "3.2",
+    "org.scalatest"            %% "scalatest"     %              "1.9.1" % "test",
+    "com.github.wookietreiber" %% "scala-chart"   % "latest.integration"
   )
 }
 
@@ -36,13 +37,12 @@ object CircleStudyBuild extends Build {
       resolvers           := allResolvers
     )
   ) dependsOn (
-    mocaputils
-  ) dependsOn (
-    scalac3d
+    mocaputils, scalac3d
   )
 
   val mocaputilsUri = uri("git://github.com/lancelet/mocaputils.git")
   lazy val mocaputils = RootProject(mocaputilsUri)
-  val scalaC3DUri = uri("git://github.com/lancelet/scala-c3d.git")
-  lazy val scalac3d = RootProject(scalaC3DUri)
+  //val scalaC3DUri = uri("git://github.com/lancelet/scala-c3d.git")
+  val scalaC3DUri = uri("../scala-c3d")
+  lazy val scalac3d = ProjectRef(scalaC3DUri, "c3d")
 }
