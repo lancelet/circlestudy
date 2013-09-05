@@ -38,10 +38,8 @@ object KineticEvents {
   private def kineticEventsFromFile(file: File): Seq[KineticEvent] = {
     val fileName = file.getName
     val metadata = TrialMetadata.fromFileName(fileName)
-    val c3d = C3D.read(file).getOrElse (
-      throw new IllegalArgumentException(s"Could not read C3D file $fileName")
-    )
-    c3d.forcePlates.flatMap(kineticEventsFromForceplate(metadata, _))
+    val c3d = C3D.read(file)
+    c3d.platforms.plates.flatMap(kineticEventsFromForceplate(metadata, _))
   }
   
   private def kineticEventsFromForceplate(metadata: TrialMetadata, plate: ForcePlate): Seq[KineticEvent] = {
