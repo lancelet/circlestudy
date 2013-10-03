@@ -6,5 +6,5 @@ object Dependencies {
 
   // Projects
   val hoofEventComparisonDependencies = Seq()
-
+  val pwaDependencies = Seq()
 }
