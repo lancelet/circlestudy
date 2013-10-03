@@ -179,25 +179,25 @@ object Buchner {
       LThigh, LCrus, LMetatarsus, LHoofHind)
     // Right    
     val RShoulder = MassiveBody.lr("ShoulderCOM", "Scapula", "HumerusDist", SegmentRelCOM.Shoulder,
-      SegmentRelMass.Shoulder, IndexedSeq("Scapula", "Shoulder", "HumerusDist"), true)
+      SegmentRelMass.Shoulder, IndexedSeq("Scapula", "Shoulder", "HumerusDist"), false)
     val RAntebrachium = MassiveBody.lr("AntebrachiumCOM", "HumerusDist", "CarpusLat", SegmentRelCOM.Antebrachium,
-      SegmentRelMass.Antebrachium, IndexedSeq("RadiusProx", "RadiusDorsal", "RadiusDist", "RadiusDistMed"), true)
+      SegmentRelMass.Antebrachium, IndexedSeq("RadiusProx", "RadiusDorsal", "RadiusDist", "RadiusDistMed"), false)
     val RMetacarpus = MassiveBody.lr("MetacarpusCOM", "CarpusLat", "FFetlockLat", SegmentRelCOM.Metacarpus,
-      SegmentRelMass.Metacarpus, IndexedSeq("MetacarpusDorsal", "FFetlockLat", "CarpusLat", "CarpusMed"), true)
+      SegmentRelMass.Metacarpus, IndexedSeq("MetacarpusDorsal", "FFetlockLat", "CarpusLat", "CarpusMed"), false)
     val RPasternFore = MassiveBody.lr("PasternForeCOM", "FFetlockLat", "FHoofLatTop", SegmentRelCOM.PasternFore,
-      SegmentRelMass.PasternFore, IndexedSeq("FFetlockLat", "FPasternMed", "FPasternLat"), true)
+      SegmentRelMass.PasternFore, IndexedSeq("FFetlockLat", "FPasternMed", "FPasternLat"), false)
     val RHoofFore = MassiveBody.lr("HoofForeCOM", "FHoofLatTop", "FHoofLatBottom", SegmentRelCOM.HoofFore,
-      SegmentRelMass.HoofFore, IndexedSeq("FHoofLatTop", "FHeel", "FHoofLatBottom", "FHoofDorsal"), true)
+      SegmentRelMass.HoofFore, IndexedSeq("FHoofLatTop", "FHeel", "FHoofLatBottom", "FHoofDorsal"), false)
     val RThigh = MassiveBody.lr("ThighCOM", "Hip", "FemurDist", SegmentRelCOM.Thigh,
-      SegmentRelMass.Thigh, IndexedSeq("TuberCoxae", "Hip", "FemurDist"), true)  // not great segment
+      SegmentRelMass.Thigh, IndexedSeq("TuberCoxae", "Hip", "FemurDist"), false)  // not great segment
     val RCrus = MassiveBody.lr("CrusCOM", "FemurDist", "TarsusLat", SegmentRelCOM.Crus,
-      SegmentRelMass.Crus, IndexedSeq("TibiaProx", "TibiaDorsal", "TibiaDist", "TibiaDistMed"), true)
+      SegmentRelMass.Crus, IndexedSeq("TibiaProx", "TibiaDorsal", "TibiaDist", "TibiaDistMed"), false)
     val RMetatarsus = MassiveBody.lr("MetatarsusCOM", "TarsusLat", "HFetlockLat", SegmentRelCOM.Metatarsus,
-      SegmentRelMass.Metatarsus, IndexedSeq("TarsusLat", "TarsusMed", "MetatarsusDorsal", "HFetlockLat"), true)
+      SegmentRelMass.Metatarsus, IndexedSeq("TarsusLat", "TarsusMed", "MetatarsusDorsal", "HFetlockLat"), false)
     val RPasternHind = MassiveBody.lr("PasternHindCOM", "HFetlockLat", "HHoofLatTop", SegmentRelCOM.PasternHind,
-      SegmentRelMass.PasternHind, IndexedSeq("HFetlockLat", "HPasternMed", "HPasternLat"), true)
+      SegmentRelMass.PasternHind, IndexedSeq("HFetlockLat", "HPasternMed", "HPasternLat"), false)
     val RHoofHind = MassiveBody.lr("HoofHindCOM", "HHoofLatTop", "HHootLatBottom", SegmentRelCOM.HoofHind,
-      SegmentRelMass.HoofHind, IndexedSeq("HHoofLatTop", "HHoofLatBottom", "HHoofDorsal", "HHeel"), true)
+      SegmentRelMass.HoofHind, IndexedSeq("HHoofLatTop", "HHoofLatBottom", "HHoofDorsal", "HHeel"), false)
     private [this] val rightBodies = Seq(RShoulder, RAntebrachium, RMetacarpus, RPasternFore, RHoofFore,
       RThigh, RCrus, RMetatarsus, RHoofHind)
       
