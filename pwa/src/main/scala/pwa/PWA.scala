@@ -12,6 +12,7 @@ import c3d._
 import c3d.util.transform.VirtualPoint
 import c3d.util.transform.RotationMatrix
 import c3d.util.transform.XForm
+import Geom._
 
 object PWA {
   
@@ -78,8 +79,6 @@ object PWA {
       pwaTable.close()
     }
   }
-
-  type Pt = (Float, Float)
   
   val outDir: File = new File("/Users/jsm/Documents/dev/circlestudy/output/pwa")
   val dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/data")
@@ -189,7 +188,7 @@ object PWA {
   def footfallsInTrial(static: C3D, motion: MotionTrial): Seq[Footfall] = {
     val c3d = motion.c3d
     case class FileFootfall(direction: Direction, gait: Gait, plateNumber: Int, 
-            forceWeightedPWA: Pt, limb: Limb, interval: ContactInterval, c3d: C3D) extends Footfall
+            forceWeightedPWA: Vec2D, limb: Limb, interval: ContactInterval, c3d: C3D) extends Footfall
     for {
       contactInterval <- contactIntervals(c3d)
       limbOpt = limbForContactInterval(static, c3d, contactInterval)
@@ -238,7 +237,7 @@ object PWA {
     }
   }
   
-  def forceWeightedPWA(static: C3D, c3d: C3D, interval: ContactInterval, limb: Limb): Pt = {
+  def forceWeightedPWA(static: C3D, c3d: C3D, interval: ContactInterval, limb: Limb): Vec2D = {
     val worldToHoof: XForm = worldToHoofTransform(static, c3d, interval, limb)
     val weightedPWA: Vec3D = pwaWeightedDuringContact(c3d, interval)
     val hoofPWA: Vec3D = worldToHoof(weightedPWA)
@@ -316,18 +315,18 @@ object PWA {
     val optPos: Option[Vec3D] = point(ptIndex)
     if (optPos.isDefined) {
       val pos: Vec3D = optPos.get
-      val testPt: Pt = (pos.x, pos.y)
-      val c0: Pt = (plate.corners(0).x, plate.corners(0).y)
-      val c1: Pt = (plate.corners(1).x, plate.corners(1).y)
-      val c2: Pt = (plate.corners(2).x, plate.corners(2).y)
-      val c3: Pt = (plate.corners(3).x, plate.corners(3).y)
+      val testPt: Vec2D = (pos.x, pos.y)
+      val c0: Vec2D = (plate.corners(0).x, plate.corners(0).y)
+      val c1: Vec2D = (plate.corners(1).x, plate.corners(1).y)
+      val c2: Vec2D = (plate.corners(2).x, plate.corners(2).y)
+      val c3: Vec2D = (plate.corners(3).x, plate.corners(3).y)
       ptWithinTriangle(c0, c1, c2, testPt) || ptWithinTriangle(c0, c2, c3, testPt)
     } else {
       false
     }
   }
   
-  def ptWithinTriangle(cornerA: Pt, cornerB: Pt, cornerC: Pt, testPt: Pt): Boolean = {
+  def ptWithinTriangle(cornerA: Vec2D, cornerB: Vec2D, cornerC: Vec2D, testPt: Vec2D): Boolean = {
     val p  = testPt
     val p1 = cornerA
     val p2 = cornerB
@@ -424,44 +423,7 @@ object PWA {
     val p3: Vec3D = t6(lastIndex).get
     circleThrough3Points((p1.x, p1.y), (p2.x, p2.x), (p3.x, p3.y))
   }
-  
-  def circleThrough3Points(p1: Pt, p2: Pt, p3: Pt): Circle = {
-    val bisector1: Line = perpendicularBisector(p1, p2)
-    val bisector2: Line = perpendicularBisector(p2, p3)
-    val origin: Pt = lineIntersection(bisector1, bisector2)
-    val radius: Float = distanceBetweenPoints(origin, p2)
-    Circle(origin, radius)
-  }
-  
-  def perpendicularBisector(p1: Pt, p2: Pt): Line = {
-    val origin_x: Float = (p1._1 + p2._1) / 2.0f
-    val origin_y: Float = (p1._2 + p2._2) / 2.0f
-    val dx: Float = p2._1 - origin_x
-    val dy: Float = p2._2 - origin_y
-    val vecx: Float = -dy
-    val vecy: Float = +dx
-    val mag: Float = sqrt(vecx * vecx + vecy * vecy).toFloat
-    Line((origin_x, origin_y), (vecx / mag, vecy / mag))
-  }
-  
-  def lineIntersection(l1: Line, l2: Line): Pt = {
-    val det: Float = l1.vec._1 * l2.vec._2 - l2.vec._1 * l1.vec._2
-    val c1: Float = -l1.vec._2 / det
-    val c2: Float =  l1.vec._1 / det
-    val dox: Float = l1.origin._1 - l2.origin._1
-    val doy: Float = l1.origin._2 - l2.origin._2
-    val f: Float = c1 * dox + c2 * doy
-    val x: Float = l2.origin._1 + f * l2.vec._1
-    val y: Float = l2.origin._2 + f * l2.vec._2
-    (x, y)
-  }
-  
-  def distanceBetweenPoints(p1: Pt, p2: Pt): Float = {
-    val dx: Float = p2._1 - p1._1
-    val dy: Float = p2._2 - p1._2
-    sqrt(dx * dx + dy * dy).toFloat
-  }
-  
+        
   def trialT6Speed(c3d: C3D, direction: Direction): Float = 
     if (direction.isCircle) circleTrialT6Speed(c3d) else straightTrialT6Speed(c3d)
   
@@ -515,17 +477,13 @@ object PWA {
     lazy val percent20: Int = fraction(0.2f)
     lazy val percent80: Int = fraction(0.8f)
   }
-  
-  case class Circle(origin: Pt, radius: Float)
-  
-  case class Line(origin: Pt, vec: Pt)
-  
+    
   trait Footfall {
     import Direction._
     import Limb._
     def direction: Direction
     def gait: Gait
-    def forceWeightedPWA: Pt
+    def forceWeightedPWA: Vec2D
     def limb: Limb
     def interval: ContactInterval
     def plateNumber: Int
