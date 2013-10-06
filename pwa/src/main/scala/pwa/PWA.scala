@@ -19,7 +19,7 @@ object PWA {
 
   def main(args: Array[String]) = {
 
-    if (false) {
+    if (true) {
       // test graphics routines
       val c3do = C3D.read(new File(dataDir, "Horse 3/Horse 3 hard surface circle/Horse3_circle_right_trot_2.c3d"))
       val imgDir = new File(outDir, "renderTest")
@@ -34,11 +34,13 @@ object PWA {
         hoofPointsForLimb(static, c3do, Limb.RF) ++
         hoofPointsForLimb(static, c3do, Limb.LH) ++
         hoofPointsForLimb(static, c3do, Limb.RH))
+      val segmentCOMs: Seq[Point] = Buchner.MB.bodies.map(_.point(static, c3do))
+      val bodyCOM: Point = Buchner.bodyCOM(static, c3do)
       val outFile = new File(outDir, "Horse3_circle_right_trot_2.m4v")
-      Viz.make_movie(c3do, outFile, imgDir, 4000.0f, trialFootfalls, hoofPoints)
+      Viz.make_movie(c3do, outFile, imgDir, 4000.0f, trialFootfalls, hoofPoints, segmentCOMs, bodyCOM)
     }
 
-    if (true) {
+    if (false) {
       import Direction._
       
       // file for a table of footfalls

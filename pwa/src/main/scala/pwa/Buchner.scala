@@ -105,8 +105,19 @@ object Buchner {
       val zAxis: Vec3D = leftToRight(static) * (if (flipLtoR) -1.0f else 1.0f)
       val staticCOM: Vec3D = segmentCOM(ssAvg(refA), ssAvg(refB), zAxis, relCOM)
 
+      // find the static cloud of marker points
+      val staticCloud: IndexedSeq[Vec3D] = for {
+        pointName <- cloud
+        avg: Vec3D = sAvg(pointName)
+      } yield {
+        if (avg.x.isNaN || avg.y.isNaN || avg.z.isNaN) {
+          println(s"point $pointName had a NaN average in trial ${static.source}")
+        }
+        avg
+      }
+      
       // track the COM with a virtual point
-      val staticCloud: IndexedSeq[Vec3D] = cloud.map(sAvg(_))
+      //val staticCloud: IndexedSeq[Vec3D] = cloud.map(sAvg(_))
       val trialCloud: IndexedSeq[Point] = cloud.map(PWA.getPoint(c3d, _))
       VirtualPoint(name, name, staticCOM, staticCloud, trialCloud)
     }
@@ -173,7 +184,7 @@ object Buchner {
       SegmentRelMass.Metatarsus, IndexedSeq("TarsusLat", "TarsusMed", "MetatarsusDorsal", "HFetlockLat"), true)
     val LPasternHind = MassiveBody.lr("PasternHindCOM", "HFetlockLat", "HHoofLatTop", SegmentRelCOM.PasternHind,
       SegmentRelMass.PasternHind, IndexedSeq("HFetlockLat", "HPasternMed", "HPasternLat"), true)
-    val LHoofHind = MassiveBody.lr("HoofHindCOM", "HHoofLatTop", "HHootLatBottom", SegmentRelCOM.HoofHind,
+    val LHoofHind = MassiveBody.lr("HoofHindCOM", "HHoofLatTop", "HHoofLatBottom", SegmentRelCOM.HoofHind,
       SegmentRelMass.HoofHind, IndexedSeq("HHoofLatTop", "HHoofLatBottom", "HHoofDorsal", "HHeel"), true)
     private [this] val leftBodies = Seq(LShoulder, LAntebrachium, LMetacarpus, LPasternFore, LHoofFore,
       LThigh, LCrus, LMetatarsus, LHoofHind)
@@ -196,7 +207,7 @@ object Buchner {
       SegmentRelMass.Metatarsus, IndexedSeq("TarsusLat", "TarsusMed", "MetatarsusDorsal", "HFetlockLat"), false)
     val RPasternHind = MassiveBody.lr("PasternHindCOM", "HFetlockLat", "HHoofLatTop", SegmentRelCOM.PasternHind,
       SegmentRelMass.PasternHind, IndexedSeq("HFetlockLat", "HPasternMed", "HPasternLat"), false)
-    val RHoofHind = MassiveBody.lr("HoofHindCOM", "HHoofLatTop", "HHootLatBottom", SegmentRelCOM.HoofHind,
+    val RHoofHind = MassiveBody.lr("HoofHindCOM", "HHoofLatTop", "HHoofLatBottom", SegmentRelCOM.HoofHind,
       SegmentRelMass.HoofHind, IndexedSeq("HHoofLatTop", "HHoofLatBottom", "HHoofDorsal", "HHeel"), false)
     private [this] val rightBodies = Seq(RShoulder, RAntebrachium, RMetacarpus, RPasternFore, RHoofFore,
       RThigh, RCrus, RMetatarsus, RHoofHind)

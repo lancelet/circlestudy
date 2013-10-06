@@ -6,6 +6,7 @@ import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Graphics2D
 import java.awt.RenderingHints
+import java.awt.geom.Arc2D
 import java.awt.geom.Ellipse2D
 import java.awt.geom.Path2D
 import java.awt.image.BufferedImage
@@ -18,12 +19,12 @@ object Viz {
   import PWA._
   
   def make_movie(c3d: C3D, outFile: File, workingDir: File, radius: Float, footfalls: Seq[Footfall], 
-      hoofPoints: Seq[Point], res: Int = 1024)
+      hoofPoints: Seq[Point], segmentCOMs: Seq[Point], bodyCOM: Point, res: Int = 1024)
   {
     // clear out working directory
     clearPNGsFromDirectory(workingDir)
     // dump trial
-    dump_trial(c3d, workingDir, radius, footfalls, hoofPoints)
+    dump_trial(c3d, workingDir, radius, footfalls, hoofPoints, segmentCOMs, bodyCOM, res)
     // encode movie
     val indir: String = workingDir.getName
     val outs: String = outFile.getCanonicalFile.toString
@@ -47,14 +48,16 @@ object Viz {
   }
     
   // dump a whole trial as a top-down 2D visualization
-  def dump_trial(c3d: C3D, dir: File, radius: Float, footfalls: Seq[Footfall], hoofPoints: Seq[Point], 
-      res: Int = 1024) 
+  def dump_trial(c3d: C3D, dir: File, radius: Float, footfalls: Seq[Footfall], hoofPoints: Seq[Point],
+      segmentCOMs: Seq[Point], bodyCOM: Point, res: Int = 1024) 
   {
     val nFrames = c3d.points.totalSamples
+    val fFrame: Int = firstFrame(c3d)
+    val lFrame: Int = lastFrame(c3d)
     for {
-      i <- firstFrame(c3d) until lastFrame(c3d)
+      i <- fFrame until lFrame
       file = new File(dir, f"$i%05d.jpg")
-    } dump_frame(c3d, file, radius, i, footfalls, hoofPoints)
+    } dump_frame(c3d, file, radius, i, footfalls, hoofPoints, segmentCOMs, bodyCOM, fFrame, lFrame, res)
   }
 
   def firstFrame(c3d: C3D): Int = {
@@ -77,7 +80,8 @@ object Viz {
   
   // dumps a frame out as a top-down 2D visualization
   def dump_frame(c3d: C3D, file: File, radius: Float, frameNumber: Int, footfalls: Seq[Footfall], 
-      hoofPoints: Seq[Point], res: Int = 1024) 
+      hoofPoints: Seq[Point], segmentCOMs: Seq[Point], bodyCOM: Point, firstFrame: Int, lastFrame: Int,
+      res: Int = 1024) 
   {
     val image = new BufferedImage(res, res, BufferedImage.TYPE_INT_RGB)
     val g = image.createGraphics()
@@ -96,8 +100,65 @@ object Viz {
     drawPWAs(g, c3d, frameNumber)
     drawPoints(g, c3d, frameNumber)
     drawMarkers(g, hoofPoints, frameNumber)
+    drawSegmentCOMs(g, segmentCOMs, frameNumber)
+    drawBodyCOM(g, bodyCOM, frameNumber, firstFrame, lastFrame)
     g.dispose()
     ImageIO.write(image, "JPG", file)
+  }
+  
+  def drawBodyCOM(g: Graphics2D, bodyCOM: Point, frameNumber: Int, firstFrame: Int, lastFrame: Int) {
+    val bodyCOMColor: Color = new Color(0.6f, 0.6f, 1.0f)
+    g.setColor(bodyCOMColor)
+    
+    // COM path
+    val pathDotDiam = 20.0f
+    val pathDotRadius = pathDotDiam / 2.0f
+    for (frame <- firstFrame until lastFrame) {
+      bodyCOM(frame) match {
+        case Some(v) => {
+          val c = new Ellipse2D.Float(v.x - pathDotRadius, v.y - pathDotRadius, pathDotDiam, pathDotDiam)
+          g.fill(c)
+        }
+        case None => {}
+      }
+    }
+    
+    // COM location for this frame
+    val bodyCOMDiam = 160.0f
+    g.setStroke(new BasicStroke(10.0f)) // stroke width
+    val r = bodyCOMDiam / 2.0f
+    bodyCOM(frameNumber) match {
+      case Some(v) => {
+        val c = new Ellipse2D.Float(v.x - r, v.y - r, bodyCOMDiam, bodyCOMDiam)
+        g.draw(c)
+        val a1 = new Arc2D.Float(v.x - r, v.y - r, bodyCOMDiam, bodyCOMDiam,   0, 90, Arc2D.PIE)
+        val a2 = new Arc2D.Float(v.x - r, v.y - r, bodyCOMDiam, bodyCOMDiam, 180, 90, Arc2D.PIE)
+        g.fill(a1)
+        g.fill(a2)
+      }
+      case None => {}
+    }
+  }
+  
+  def drawSegmentCOMs(g: Graphics2D, coms: Seq[Point], frameNumber: Int) {
+    val segmentCOMDiam = 120.0f
+    val segmentCOMColor: Color = Color.GREEN.withAlpha(0.5f)
+    g.setColor(segmentCOMColor)
+    g.setStroke(new BasicStroke(10.0f)) // stroke width
+    val r = segmentCOMDiam / 2.0f
+    for {
+      point <- coms
+      optVec: Option[Vec3D] = point(frameNumber)
+      if (optVec.isDefined)
+      v: Vec3D = optVec.get
+    } {
+      val c = new Ellipse2D.Float(v.x - r, v.y - r, segmentCOMDiam, segmentCOMDiam)
+      g.draw(c)
+      val a1 = new Arc2D.Float(v.x - r, v.y - r, segmentCOMDiam, segmentCOMDiam,   0, 90, Arc2D.PIE)
+      val a2 = new Arc2D.Float(v.x - r, v.y - r, segmentCOMDiam, segmentCOMDiam, 180, 90, Arc2D.PIE)
+      g.fill(a1)
+      g.fill(a2)
+    }
   }
   
   def drawMarkers(g: Graphics2D, hoofPoints: Seq[Point], frameNumber: Int) {
