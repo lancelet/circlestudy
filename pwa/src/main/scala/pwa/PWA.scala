@@ -36,15 +36,15 @@ object PWA {
         hoofPointsForLimb(static, c3do, Limb.RF) ++
         hoofPointsForLimb(static, c3do, Limb.LH) ++
         hoofPointsForLimb(static, c3do, Limb.RH))
-      val segmentCOMs: Seq[Point] = Buchner.MB.bodies.map(_.point(static, c3do))
-      val bodyCOM: Point = Buchner.bodyCOM(static, c3do)
+      val segmentCOMs: Seq[Point] = Buchner.MB.bodies.map(_.point(static, c3do)).map(new MemoizedPoint(_))
+      val bodyCOM: Point = new MemoizedPoint(Buchner.bodyCOM(static, c3do))
       val outFile = new File(outDir, "Horse3_circle_right_trot_2.m4v")
       Viz.make_movie(c3do, outFile, imgDir, 4000.0f, trialFootfalls, hoofPoints, segmentCOMs, bodyCOM)
     }
     
     // export all motion trials for all horses
     if (true) {
-      val curHorses: Seq[Horse] = Seq(Horse(3))
+      val curHorses: Seq[Horse] = Seq(Horse(9))
       val imgDir = new File(outDir, "renderMotionTrial")
       def outFile(source: String): File = 
         new File(outDir, s"trialMovies/${(new File(source)).getName.dropRight(4)}.m4v")
@@ -58,8 +58,8 @@ object PWA {
           hoofPointsForLimb(static, c3d, Limb.RF) ++
           hoofPointsForLimb(static, c3d, Limb.LH) ++
           hoofPointsForLimb(static, c3d, Limb.RH))
-        segmentCOMs: Seq[Point] = Buchner.MB.bodies.map(_.point(static, c3d))
-        bodyCOM: Point = Buchner.bodyCOM(static, c3d)
+        segmentCOMs: Seq[Point] = Buchner.MB.bodies.map(_.point(static, c3d)).map(new MemoizedPoint(_))
+        bodyCOM: Point = new MemoizedPoint(Buchner.bodyCOM(static, c3d))
       } Viz.make_movie(c3d, outFile(c3d.source), imgDir, 4000.0f, trialFootfalls, hoofPoints, segmentCOMs, bodyCOM)
     }
 
@@ -82,8 +82,8 @@ object PWA {
         gait = footfall.gait
         limb = footfall.limb
         plateNumber = footfall.plateNumber
-        x = footfall.forceWeightedPWA._1
-        y = footfall.forceWeightedPWA._2
+        x = footfall.forceWeightedPWA.x
+        y = footfall.forceWeightedPWA.y
         outerLimb = if (footfall.isOuterLimb) "true" else "false"
         isCircle = if(footfall.direction.isCircle) "true" else "false"
         isForelimb = if (footfall.limb.isForelimb) "true" else "false"
@@ -263,7 +263,7 @@ object PWA {
     val worldToHoof: XForm = worldToHoofTransform(static, c3d, interval, limb)
     val weightedPWA: Vec3D = pwaWeightedDuringContact(c3d, interval)
     val hoofPWA: Vec3D = worldToHoof(weightedPWA)
-    (hoofPWA.x, hoofPWA.y)
+    Vec2D(hoofPWA.x, hoofPWA.y)
   }
   
   def worldToHoofTransform(static: C3D, c3d: C3D, interval: ContactInterval, limb: Limb): XForm = {
@@ -337,11 +337,11 @@ object PWA {
     val optPos: Option[Vec3D] = point(ptIndex)
     if (optPos.isDefined) {
       val pos: Vec3D = optPos.get
-      val testPt: Vec2D = (pos.x, pos.y)
-      val c0: Vec2D = (plate.corners(0).x, plate.corners(0).y)
-      val c1: Vec2D = (plate.corners(1).x, plate.corners(1).y)
-      val c2: Vec2D = (plate.corners(2).x, plate.corners(2).y)
-      val c3: Vec2D = (plate.corners(3).x, plate.corners(3).y)
+      val testPt: Vec2D = Vec2D(pos.x, pos.y)
+      val c0: Vec2D = Vec2D(plate.corners(0).x, plate.corners(0).y)
+      val c1: Vec2D = Vec2D(plate.corners(1).x, plate.corners(1).y)
+      val c2: Vec2D = Vec2D(plate.corners(2).x, plate.corners(2).y)
+      val c3: Vec2D = Vec2D(plate.corners(3).x, plate.corners(3).y)
       ptWithinTriangle(c0, c1, c2, testPt) || ptWithinTriangle(c0, c2, c3, testPt)
     } else {
       false
@@ -353,9 +353,9 @@ object PWA {
     val p1 = cornerA
     val p2 = cornerB
     val p3 = cornerC
-    val det: Float = (p1._1 - p3._1) * (p2._2 - p3._2) - (p2._1 - p3._1) * (p1._2 - p3._2)
-    val alpha: Float = ((p2._2 - p3._2) * (p._1 - p3._1) + (p3._1 - p2._1) * (p._2 - p3._2)) / det
-    val beta: Float  = ((p3._2 - p1._2) * (p._1 - p3._1) + (p1._1 - p3._1) * (p._2 - p3._2)) / det
+    val det: Float = (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y)
+    val alpha: Float = ((p2.y - p3.y) * (p.x - p3.x) + (p3.x - p2.x) * (p.y - p3.y)) / det
+    val beta: Float  = ((p3.y - p1.y) * (p.x - p3.x) + (p1.x - p3.x) * (p.y - p3.y)) / det
     val gamma: Float = 1.0f - alpha - beta
     (alpha >= 0) && (beta >= 0) && (gamma >= 0)
   }
@@ -410,7 +410,7 @@ object PWA {
     for {
       name <- names
       staticPt: Point = getPoint(static, name)
-    } yield VirtualPoint(name, "", averagePt(staticPt), staticRefs, motionPoints)
+    } yield (new MemoizedPoint(VirtualPoint(name, "", averagePt(staticPt), staticRefs, motionPoints)))
   }
   
   def averagePtOverRange(p: Point, start: Int, end: Int): Vec3D = {
@@ -443,7 +443,7 @@ object PWA {
     val p1: Vec3D = t6(firstIndex).get
     val p2: Vec3D = t6(midIndex).get
     val p3: Vec3D = t6(lastIndex).get
-    circleThrough3Points((p1.x, p1.y), (p2.x, p2.x), (p3.x, p3.y))
+    circleThrough3Points(Vec2D(p1.x, p1.y), Vec2D(p2.x, p2.x), Vec2D(p3.x, p3.y))
   }
         
   def trialT6Speed(c3d: C3D, direction: Direction): Float = 
@@ -465,8 +465,8 @@ object PWA {
     val lastIndex:  Int = t6.lastIndexWhere(_.isDefined)
     val p0: Vec3D = t6(firstIndex).get
     val p1: Vec3D = t6(lastIndex).get
-    val a0: Double = atan2(p0.y - circle.origin._2, p0.x - circle.origin._1)
-    val a1: Double = atan2(p1.y - circle.origin._2, p1.x - circle.origin._1)
+    val a0: Double = atan2(p0.y - circle.origin.y, p0.x - circle.origin.x)
+    val a1: Double = atan2(p1.y - circle.origin.y, p1.x - circle.origin.x)
     val da: Float = (a1 - a0).toFloat
     val deltaT: Float = (lastIndex - firstIndex) / c3d.points.rate
     val deltaX: Float = abs(da * circle.radius)

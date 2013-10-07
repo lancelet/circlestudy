@@ -159,9 +159,9 @@ object Buchner {
       IndexedSeq("T6", "T8", "T12", "T16", "L3", "L6", "S2", "S4", "LC6", "RC6", "LRib1", "RRib1", "LRib2", "RRib2",
                  "LTuberCoxaeUpper", "RTuberCoxaeUpper", "LTuberCoxae", "RTuberCoxae", "LHip", "RHip",
                  "Belly1", "Belly2"), false)
-    val Head = MassiveBody("HeadCOM", Seq("LAtlas", "RAtlas"), Seq("LFacialCrest", "RFacialCrest"),
+    val Head = MassiveBody("HeadCOM", Seq("LAtlas"), Seq("LFacialCrest"),
       SegmentRelCOM.Head, SegmentRelMass.Head, IndexedSeq("LFacialCrest", "RFacialCrest", "Forehead"), false)
-    val Neck = MassiveBody("NeckCOM", Seq("LC6", "RC6"), Seq("LAtlas", "RAtlas"), SegmentRelCOM.Neck,
+    val Neck = MassiveBody("NeckCOM", Seq("LC6"), Seq("LAtlas"), SegmentRelCOM.Neck,
       SegmentRelMass.Neck, IndexedSeq("LC6", "RC6", "LAtlas", "RAtlas"), false)
 
     // symmetric (L-R) bodies

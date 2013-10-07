@@ -60,9 +60,9 @@ object Viz {
   def dump_trial(c3d: C3D, dir: File, radius: Float, footfalls: Seq[Footfall], hoofPoints: Seq[Point],
       segmentCOMs: Seq[Point], bodyCOM: Point, res: Int = 1024) 
   {
-    val bodyCOMpoints: IndexedSeq[Vec2D] = bodyCOM.filter(_.isDefined).map(_.get).map(v => (v.x, v.y))
+    val bodyCOMpoints: IndexedSeq[Vec2D] = bodyCOM.filter(_.isDefined).map(_.get).map(v => Vec2D(v.x, v.y))
     val bodyCOMcircle: Option[Circle] = 
-      if (!footfalls.isEmpty && (footfalls.head.direction != Direction.Straight)) 
+      if (!footfalls.isEmpty && (footfalls.head.direction != Direction.Straight) && !bodyCOMpoints.isEmpty) 
         Some(lsqCircle(bodyCOMpoints)) 
       else 
         None
@@ -143,8 +143,8 @@ object Viz {
       bodyCOMCircle: Circle) {
     
     // COM circle
-    val rbx = bodyCOMCircle.origin._1
-    val rby = bodyCOMCircle.origin._2
+    val rbx = bodyCOMCircle.origin.x
+    val rby = bodyCOMCircle.origin.y
     val rbc = bodyCOMCircle.radius
     val bodyCOMCircleColor: Color = new Color(1.0f, 0.8f, 0.8f).withAlpha(0.2f)
     //val bodyCOMCircleStroke: BasicStroke = new BasicStroke(20.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
