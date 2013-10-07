@@ -8,7 +8,9 @@ import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.geom.Arc2D
 import java.awt.geom.Ellipse2D
+import java.awt.geom.Line2D
 import java.awt.geom.Path2D
+import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import java.io.File
 import java.io.FilenameFilter
@@ -16,6 +18,7 @@ import javax.imageio.ImageIO
 
 object Viz {
 
+  import Geom._
   import PWA._
   
   def make_movie(c3d: C3D, outFile: File, workingDir: File, radius: Float, footfalls: Seq[Footfall], 
@@ -23,6 +26,11 @@ object Viz {
   {
     // clear out working directory
     clearPNGsFromDirectory(workingDir)
+    // skip file if it exists already
+    if (outFile.exists) {
+      println(s"NOTE: ${outFile.getName} already exists; skipping")
+      return
+    }
     // dump trial
     dump_trial(c3d, workingDir, radius, footfalls, hoofPoints, segmentCOMs, bodyCOM, res)
     // encode movie
@@ -35,6 +43,7 @@ object Viz {
     pb.redirectError(new File(PWA.outDir, "ffmpeg_out.txt"))
     val proc = pb.start()
     if (proc.waitFor() != 0) {
+      proc.destroy()
       println("problem executing ffmpeg procedure")
     }
   }
@@ -51,13 +60,19 @@ object Viz {
   def dump_trial(c3d: C3D, dir: File, radius: Float, footfalls: Seq[Footfall], hoofPoints: Seq[Point],
       segmentCOMs: Seq[Point], bodyCOM: Point, res: Int = 1024) 
   {
+    val bodyCOMpoints: IndexedSeq[Vec2D] = bodyCOM.filter(_.isDefined).map(_.get).map(v => (v.x, v.y))
+    val bodyCOMcircle: Option[Circle] = 
+      if (!footfalls.isEmpty && (footfalls.head.direction != Direction.Straight)) 
+        Some(lsqCircle(bodyCOMpoints)) 
+      else 
+        None
     val nFrames = c3d.points.totalSamples
     val fFrame: Int = firstFrame(c3d)
     val lFrame: Int = lastFrame(c3d)
     for {
-      i <- fFrame until lFrame
+      i <- (fFrame until lFrame).par
       file = new File(dir, f"$i%05d.jpg")
-    } dump_frame(c3d, file, radius, i, footfalls, hoofPoints, segmentCOMs, bodyCOM, fFrame, lFrame, res)
+    } dump_frame(c3d, file, radius, i, footfalls, hoofPoints, segmentCOMs, bodyCOM, fFrame, lFrame, bodyCOMcircle, res)
   }
 
   def firstFrame(c3d: C3D): Int = {
@@ -81,6 +96,7 @@ object Viz {
   // dumps a frame out as a top-down 2D visualization
   def dump_frame(c3d: C3D, file: File, radius: Float, frameNumber: Int, footfalls: Seq[Footfall], 
       hoofPoints: Seq[Point], segmentCOMs: Seq[Point], bodyCOM: Point, firstFrame: Int, lastFrame: Int,
+      bodyCOMcircle: Option[Circle],
       res: Int = 1024) 
   {
     val image = new BufferedImage(res, res, BufferedImage.TYPE_INT_RGB)
@@ -97,16 +113,47 @@ object Viz {
     g.setColor(Color.WHITE)
     // draw scene elements
     drawForcePlateBoundaries(g, c3d, frameNumber, footfalls)
+    drawHitBars(g, c3d, frameNumber, footfalls, firstFrame, lastFrame)
     drawPWAs(g, c3d, frameNumber)
     drawPoints(g, c3d, frameNumber)
     drawMarkers(g, hoofPoints, frameNumber)
     drawSegmentCOMs(g, segmentCOMs, frameNumber)
-    drawBodyCOM(g, bodyCOM, frameNumber, firstFrame, lastFrame)
+    if (bodyCOMcircle.isDefined) drawBodyCOM(g, bodyCOM, frameNumber, firstFrame, lastFrame, bodyCOMcircle.get)
+    drawTrialInfo(g, c3d.source, bodyCOMcircle)
     g.dispose()
     ImageIO.write(image, "JPG", file)
   }
   
-  def drawBodyCOM(g: Graphics2D, bodyCOM: Point, frameNumber: Int, firstFrame: Int, lastFrame: Int) {
+  def drawTrialInfo(g: Graphics2D, trialName: String, bodyCOMCircle: Option[Circle]) {
+    val size: Float = 4000.0f
+    val margin: Float = 100.0f
+    g.setColor(new Color(0.8f, 0.8f, 0.8f))
+    g.setFont(g.getFont().deriveFont(150.0f))
+    drawTextUpperLeft(g, trialName, -size + margin, size - margin)
+    bodyCOMCircle match {
+      case Some(c) => {
+        val mrad = c.radius / 1000.0f
+        drawTextUpperLeft(g, f"COM Radius: $mrad%.2f m", -size + margin, size - margin - 180.0f)
+      }
+      case None => {}
+    }
+  }
+  
+  def drawBodyCOM(g: Graphics2D, bodyCOM: Point, frameNumber: Int, firstFrame: Int, lastFrame: Int, 
+      bodyCOMCircle: Circle) {
+    
+    // COM circle
+    val rbx = bodyCOMCircle.origin._1
+    val rby = bodyCOMCircle.origin._2
+    val rbc = bodyCOMCircle.radius
+    val bodyCOMCircleColor: Color = new Color(1.0f, 0.8f, 0.8f).withAlpha(0.2f)
+    //val bodyCOMCircleStroke: BasicStroke = new BasicStroke(20.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
+    //  80.0f, Array[Float](75.0f, 75.0f), 0.0f)
+    val bodyCOMCircleStroke: BasicStroke = new BasicStroke(100.0f)
+    g.setColor(bodyCOMCircleColor)
+    g.setStroke(bodyCOMCircleStroke)
+    g.draw(new Ellipse2D.Float(rbx - rbc, rby - rbc, rbc * 2, rbc * 2))
+    
     val bodyCOMColor: Color = new Color(0.6f, 0.6f, 1.0f)
     g.setColor(bodyCOMColor)
     
@@ -254,6 +301,66 @@ object Viz {
     }
   }
   
+  def drawHitBars(g: Graphics2D, c3d: C3D, frameNumber: Int, footfalls: Seq[Footfall], firstFrame: Int, 
+      lastFrame: Int) {
+    val size: Float = 4000.0f
+    val lrMargin: Float = 200.0f
+    val bottomMargin: Float = 100.0f
+    val barHeight: Float = 200.0f
+    val barWidth: Float = 2 * (size - lrMargin)
+    val nFrames: Float = lastFrame - firstFrame
+    val frameHighlightColor: Color = Color.RED.withAlpha(0.5f)
+    def drawBar(plateNumber: Int, y: Float) {
+      
+      def frameToX(frame: Int): Float = (-size+lrMargin) + ((frame - firstFrame) / nFrames) * barWidth
+      def footfallContainsFrameNumber(footfall: Footfall): Boolean = {
+        (frameNumber >= footfall.interval.on) && (frameNumber <= footfall.interval.off)
+      }
+      
+      // hits
+      val strikes: Seq[Footfall] = footfalls.filter(footfallContainsFrameNumber(_))
+      g.setFont(g.getFont().deriveFont(150.0f))
+      for {
+        ff <- footfalls
+        if (ff.plateNumber == (plateNumber + 1))
+        x1 = frameToX(ff.interval.on)
+        x2 = frameToX(ff.interval.off)
+        width = x2 - x1
+      } {
+        val hitColor: Color = if (footfallContainsFrameNumber(ff)) {
+          Color.YELLOW.darker.withAlpha(0.9f)
+        } else {
+          Color.YELLOW.darker.withAlpha(0.5f)
+        }
+        g.setColor(hitColor)
+        g.fill(new Rectangle2D.Float(x1, y, width, barHeight))
+        g.setColor(Color.BLACK)
+        drawTextCentered(g, ff.limb.toString, x1 + (width / 2.0f), y + (barHeight / 2.0f))
+      }
+      
+      // current frame
+      val x0 = frameToX(frameNumber)
+      val w0 = barWidth / nFrames
+      g.setColor(frameHighlightColor)
+      g.fill(new Rectangle2D.Float(x0, y, w0, barHeight))
+      
+      // border
+      g.setColor(Color.YELLOW.darker)
+      g.setStroke(new BasicStroke(10.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
+      g.draw(new Rectangle2D.Float(-size+lrMargin, y, barWidth, barHeight))
+      
+      // frame boundaries
+      g.setColor(Color.YELLOW.darker.withAlpha(0.25f))
+      g.setStroke(new BasicStroke(7.5f, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_BEVEL))
+      for (frame <- firstFrame until lastFrame) {
+        val x = frameToX(frame)
+        g.draw(new Line2D.Float(x, y, x, y+barHeight))
+      }
+
+    }
+    for (i <- 0 to 5) drawBar(i, -size + bottomMargin + (barHeight * (5-i)))
+  }
+  
   def drawTextCentered(g: Graphics2D, text: String, x: Float, y: Float) {
     val oTransform = g.getTransform()
     val fm = g.getFontMetrics()
@@ -261,6 +368,16 @@ object Viz {
     val dx = bounds.getWidth / 2
     val dy = bounds.getHeight / 2 - fm.getDescent
     g.translate((x - dx).toFloat, (y - dy).toFloat)
+    g.scale(1, -1)
+    g.drawString(text, 0, 0)
+    g.setTransform(oTransform)
+  }
+  
+  def drawTextUpperLeft(g: Graphics2D, text: String, x: Float, y: Float) {
+    val oTransform = g.getTransform()
+    val fm = g.getFontMetrics()
+    val bounds = fm.getStringBounds(text, g)
+    g.translate(x, y - bounds.getHeight)
     g.scale(1, -1)
     g.drawString(text, 0, 0)
     g.setTransform(oTransform)

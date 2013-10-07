@@ -16,6 +16,6 @@ lazy val hoofEventComparison = (
 
 lazy val pwa = {
   CircleStudyProject("pwa").
-    settings(pwaDependencies:_*).
+    settings(libraryDependencies := pwaDependencies).
     dependsOn(scalac3d)
 }

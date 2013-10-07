@@ -20,7 +20,8 @@ object PWA {
 
   def main(args: Array[String]) = {
 
-    if (true) {
+    // test graphics routines
+    if (false) {
       // test graphics routines
       val c3do = C3D.read(new File(dataDir, "Horse 3/Horse 3 hard surface circle/Horse3_circle_right_trot_2.c3d"))
       val imgDir = new File(outDir, "renderTest")
@@ -39,6 +40,27 @@ object PWA {
       val bodyCOM: Point = Buchner.bodyCOM(static, c3do)
       val outFile = new File(outDir, "Horse3_circle_right_trot_2.m4v")
       Viz.make_movie(c3do, outFile, imgDir, 4000.0f, trialFootfalls, hoofPoints, segmentCOMs, bodyCOM)
+    }
+    
+    // export all motion trials for all horses
+    if (true) {
+      val curHorses: Seq[Horse] = Seq(Horse(3))
+      val imgDir = new File(outDir, "renderMotionTrial")
+      def outFile(source: String): File = 
+        new File(outDir, s"trialMovies/${(new File(source)).getName.dropRight(4)}.m4v")
+      for {
+        horse: Horse <- curHorses
+        static: C3D = staticC3D(horse)
+        trial: MotionTrial <- motionTrials(horse)
+        c3d: C3D = trial.c3d
+        trialFootfalls = footfallsInTrial(static, trial)
+        hoofPoints = (hoofPointsForLimb(static, c3d, Limb.LF) ++
+          hoofPointsForLimb(static, c3d, Limb.RF) ++
+          hoofPointsForLimb(static, c3d, Limb.LH) ++
+          hoofPointsForLimb(static, c3d, Limb.RH))
+        segmentCOMs: Seq[Point] = Buchner.MB.bodies.map(_.point(static, c3d))
+        bodyCOM: Point = Buchner.bodyCOM(static, c3d)
+      } Viz.make_movie(c3d, outFile(c3d.source), imgDir, 4000.0f, trialFootfalls, hoofPoints, segmentCOMs, bodyCOM)
     }
 
     if (false) {

@@ -1,6 +1,16 @@
 package pwa
 
+import scala.annotation.tailrec
+import scala.collection.immutable._
 import math.sqrt
+import org.apache.commons.math3.analysis.MultivariateFunction
+import org.apache.commons.math3.optim.InitialGuess
+import org.apache.commons.math3.optim.MaxEval
+import org.apache.commons.math3.optim.PointValuePair
+import org.apache.commons.math3.optim.SimpleBounds
+import org.apache.commons.math3.optim.nonlinear.scalar.GoalType
+import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction
+import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.BOBYQAOptimizer
 
 object Geom {
 
@@ -46,5 +56,45 @@ object Geom {
     val mag: Float = sqrt(vecx * vecx + vecy * vecy).toFloat
     Line((origin_x, origin_y), (vecx / mag, vecy / mag))
   }  
+  
+  def lsqCircle(xx: IndexedSeq[Vec2D]): Circle = {
+    
+    // find initial guess from 3 points
+    val pt3circle = circleThrough3Points(xx(0), xx(xx.length / 2), xx.last)
+    val initialGuess = new InitialGuess(Array(pt3circle.origin._1, pt3circle.origin._2, pt3circle.radius)) // x,y,r
+    
+    // general multi-variate optimisation
+    val fitFunction: MultivariateFunction = new MultivariateFunction {
+      def value(xyr: Array[Double]): Double = {
+        @tailrec def accum(err: Double, index: Int): Double = {
+          if (index == xx.length) {
+            err
+          } else {
+            val v: Vec2D = xx(index)
+            val dx = v._1 - xyr(0)            // x coordinate relative to current origin
+            val dy = v._2 - xyr(1)            // y coordinate relative to current origin
+            val dr = sqrt(dx * dx + dy * dy)  // current radius of (x,y) point
+            val delta = dr - xyr(2)           // error in the radius of the (x,y) point
+            accum(err + (delta * delta), index + 1)
+          }
+        }
+        accum(0.0, 0)
+      }
+    }
+    val objectiveFn: ObjectiveFunction = new ObjectiveFunction(fitFunction)
+    val optimizer = new BOBYQAOptimizer(5)
+    val maxEval = new MaxEval(1000)
+    val bounds = SimpleBounds.unbounded(3)
+    val pvp: PointValuePair = optimizer.optimize(objectiveFn, initialGuess, maxEval, GoalType.MINIMIZE, bounds)
+    
+    // extract values
+    val a: Array[Double] = pvp.getPoint()
+    val x = a(0).toFloat
+    val y = a(1).toFloat
+    val r = a(2).toFloat
+    
+    Circle((x, y), r)
+    
+  }
   
 }
