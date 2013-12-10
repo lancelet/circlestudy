@@ -3,7 +3,7 @@ package pwa
 import c3d._
 import scala.annotation.tailrec
 import scala.collection.immutable._
-import math.sqrt
+import math.{atan2, cos, sin, sqrt}
 import org.apache.commons.math3.analysis.MultivariateFunction
 import org.apache.commons.math3.optim.InitialGuess
 import org.apache.commons.math3.optim.MaxEval
@@ -15,7 +15,16 @@ import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.BOBYQAOptimizer
 
 object Geom {
 
-  final case class Vec2D(x: Float, y: Float)
+  final case class Vec2D(x: Float, y: Float) {
+    def -(v: Vec2D): Vec2D = Vec2D(x - v.x, y - v.y)
+    def dot(v: Vec2D): Float = x * v.x + y * v.y
+    def angle: Float = atan2(y, x).toFloat
+    def mag: Float = sqrt(x * x + y * y).toFloat
+  }
+  object Vec2D {
+    def fromVec3Dxy(v3: Vec3D): Vec2D = Vec2D(v3.x, v3.y)
+    def fromPolar(r: Float, theta: Float): Vec2D = Vec2D((r * cos(theta)).toFloat, (r * sin(theta)).toFloat)
+  }
   
   final case class Circle(origin: Vec2D, radius: Float)
   

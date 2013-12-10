@@ -18,6 +18,11 @@ object PWA {
   
   val OnlyOneHorse: Boolean = false /* flag to indicate only use one horse */ 
 
+  val outDir: File = new File("/Users/jsm/Documents/dev/circlestudy/output/pwa")
+  val dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/data")
+  val forceThreshold: Float = 150.0f // N
+  val minContactDuration: Float = 0.1f // s
+
   def main(args: Array[String]) = {
 
     // test graphics routines
@@ -42,8 +47,40 @@ object PWA {
       Viz.make_movie(c3do, outFile, imgDir, 4000.0f, trialFootfalls, hoofPoints, segmentCOMs, bodyCOM)
     }
     
-    // export all motion trials for all horses
+    // export stride data for Sandra
     if (true) {
+      val curHorses: Seq[Horse] = horses
+      val strideDataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/output/stride-timings")
+      def csvFileNameFromC3DFileName(c3dFileName: String): String = {
+        val f = new File(c3dFileName)
+        f.getName().dropRight(3) ++ "csv"
+      }
+      for {
+        horse <- curHorses
+        footfallsByC3DFile: Map[String,Seq[Footfall]] = footfalls(horse).groupBy(_.c3d.source)
+        c3dFileName <- footfallsByC3DFile.keys
+        csvFileName = csvFileNameFromC3DFileName(c3dFileName)
+        footfallsForCurrentC3DFile: Seq[Footfall] = footfallsByC3DFile(c3dFileName)
+      } {
+        println(s"Processing file $c3dFileName -> $csvFileName")
+        val w: Writer = new FileWriter(new File(strideDataDir, csvFileName))
+        w.write(s"Source CSV file:,$c3dFileName\n")
+        w.write(s"Force threshold (N):,$forceThreshold\n")
+        w.write("Limb,Stance start (sample number),Stance end (sample number)\n")
+        for {
+          footfall <- footfallsForCurrentC3DFile
+          limb = footfall.limb
+          start = footfall.interval.on
+          end = footfall.interval.off
+        } {
+          w.write(s"$limb,$start,$end\n")
+        }
+        w.close()
+      }
+    }
+
+    // export all motion trials for all horses
+    if (false) {
       val curHorses: Seq[Horse] = Seq(Horse(9))
       val imgDir = new File(outDir, "renderMotionTrial")
       def outFile(source: String): File = 
@@ -102,11 +139,6 @@ object PWA {
     }
   }
   
-  val outDir: File = new File("/Users/jsm/Documents/dev/circlestudy/output/pwa")
-  val dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/data")
-  val forceThreshold: Float = 150.0f // N
-  val minContactDuration: Float = 0.1f // s
-
   sealed trait Direction {
     import Direction._
     def isCircle: Boolean = (this == CircleLeft) || (this == CircleRight)
@@ -132,6 +164,13 @@ object PWA {
     object RF extends Limb { override def toString = "RF" }
     object LH extends Limb { override def toString = "LH" }
     object RH extends Limb { override def toString = "RH" }
+    def fromString(s: String): Limb = s.toUpperCase match {
+      case "LF" => LF
+      case "LH" => LH
+      case "RF" => RF
+      case "RH" => RH
+      case _ => throw new IllegalArgumentException(s"limb '$s' is invalid")
+    }
   }
   
   final case class Horse (id: Int)
