@@ -7,7 +7,8 @@ import java.awt.{BasicStroke, Color, RenderingHints, Graphics2D}
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import scala.collection.immutable._
-import pwa.Buchner
+import pwa.{Geom, Buchner}
+import pwa.Geom.{Circle, Vec2D}
 
 object VCFT {
 
@@ -15,6 +16,7 @@ object VCFT {
   val outDir: File = new File("/Users/jsm/Documents/dev/circlestudy/output/vcft")
   val markerOnlyDir: File = new File(outDir, "markers-only")
   val comOnlyDir: File = new File(outDir, "com-only")
+  val comPathDir: File = new File(outDir, "com-path")
   val trialFile: File = new File(dataDir, "Horse 3/Horse 3 hard surface circle/Horse3_circle_left_trot_6.c3d")
   val staticFile: File = new File(dataDir, "Horse 3/Horse 3 hard surface circle/Horse3_static_virtual_2.c3d")
   lazy val trial: C3D = C3D.read(trialFile)
@@ -43,6 +45,7 @@ object VCFT {
   val butterFlyDraw: Color = colorC.withAlpha(0.4f)
   val forceDraw: Color = colorC
   val comColor: Color = colorE
+  val comPathColor: Color = comColor.withAlpha(0.8f)
   val fScale: Float = 1.0f
   val comDiam: Float = 160.0f
 
@@ -58,6 +61,9 @@ object VCFT {
 
     println("Rendering COM pass.")
     renderCOMOnly()
+
+    println("Rendering COM path pass.")
+    renderCOMPath()
 
   }
 
@@ -102,6 +108,33 @@ object VCFT {
     for (frame <- (startFrame until endFrame).par) renderFrame(frame)
   }
 
+  /**
+   * Renders COM + path + markers
+   */
+  private def renderCOMPath() {
+    def renderSubFrame(frame: Int, subFrame: Int, circle: Circle) {
+      println(s"Rendering COM path frame: $frame, subframe: $subFrame")
+      val ImageGraphicPair(image, g) = createImage()
+      val renderInfo = RenderInfo(frame, subFrame, g, xForm, trial, static)
+      val outFile: File = new File(comPathDir, f"${renderInfo.frameNumber}%05d.png")
+      renderForcePlate(0, renderInfo)
+      renderPoints(renderInfo)
+      renderForceButterfly(0, renderInfo)
+      renderSingleForce(0, renderInfo)
+      renderCOMCircle(circle, renderInfo)
+      renderCOM(renderInfo)
+      g.dispose()
+      ImageIO.write(image, "PNG", outFile)
+    }
+    val circlePoints: IndexedSeq[Vec2D] = Buchner.bodyCOM(static, trial).filter(_.isDefined).map(_.get).map(
+      v => Vec2D(v.x, v.y))
+    val circle: Circle = Geom.lsqCircle(circlePoints)
+    def renderFrame(frame: Int, circle: Circle) = {
+      for (subframe <- 0 until nSubFrames) renderSubFrame(frame, subframe, circle)
+    }
+    for (frame <- (startFrame until endFrame).par) renderFrame(frame, circle)
+  }
+
   case class ImageGraphicPair(image: BufferedImage, g2d: Graphics2D)
   def createImage(): ImageGraphicPair = {
     import RenderingHints._
@@ -134,7 +167,7 @@ object VCFT {
     g.setColor(if (frameInStance(r.frame)) fpActiveFill else fpInactiveFill)
     g.fill(path)
     g.setColor(fpDraw)
-    g.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
+    g.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
     g.draw(path)
   }
 
@@ -205,6 +238,16 @@ object VCFT {
     }
   }
 
+  def renderCOMCircle(c: Circle, r: RenderInfo) {
+    val dash: Array[Float] = Array(4.0f, 6.0f)
+    r.g2d.setColor(comPathColor)
+    r.g2d.setStroke(new BasicStroke(4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 45.0f, dash, 0.0f))
+    val p = new GeneralPath()
+    p.append(new Ellipse2D.Float(c.origin.x - c.radius, c.origin.y - c.radius, 2 * c.radius, 2 * c.radius), false)
+    p.transform(r.xForm.asAffine)
+    r.g2d.draw(p)
+  }
+
   /**
    * Creates output directories if they don't already exist.
    */
@@ -213,6 +256,7 @@ object VCFT {
     mkdir(outDir)
     mkdir(markerOnlyDir)
     mkdir(comOnlyDir)
+    mkdir(comPathDir)
   }
 
   private def frameInStance(frame: Int): Boolean = (frame >= stanceStart) && (frame <= stanceEnd)
