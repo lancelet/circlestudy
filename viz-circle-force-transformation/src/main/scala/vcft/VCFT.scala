@@ -21,9 +21,10 @@ object VCFT {
   val yRes: Int = 600
   val startFrame: Int = 175
   val endFrame: Int = 230
+  val nSubFrames: Int = 2
   val viewRadius: Float = 4000.0f
-  val colorA: Color = new Color(86, 117, 168)
-  val colorB: Color = new Color(81, 163, 206)
+  val colorA: Color = colorFromHex("06799F")
+  val colorB: Color = colorFromHex("58C1E4")
   val fpFill: Color = colorA
   val fpDraw: Color = colorB
 
@@ -43,15 +44,16 @@ object VCFT {
    * Renders marker-only.
    */
   private def renderMarkersOnly() {
-    def renderFrame(frame: Int) {
-      println(s"Rendering marker only frame: $frame")
-      val outFile: File = new File(markerOnlyDir, f"$frame%05d.png")
+    def renderSubFrame(frame: Int, subFrame: Int) {
+      println(s"Rendering marker only frame: $frame, subframe: $subFrame")
       val ImageGraphicPair(image, g) = createImage()
-      val renderInfo = RenderInfo(frame, g, xForm, trial, static)
+      val renderInfo = RenderInfo(frame, subFrame, g, xForm, trial, static)
+      val outFile: File = new File(markerOnlyDir, f"${renderInfo.frameNumber}%05d.png")
       renderForcePlate(0, renderInfo)
       g.dispose()
       ImageIO.write(image, "PNG", outFile)
     }
+    def renderFrame(frame: Int) = for (subframe <- 0 until nSubFrames) renderSubFrame(frame, subframe)
     for (frame <- (startFrame until endFrame).par) renderFrame(frame)
   }
 
@@ -66,7 +68,10 @@ object VCFT {
     ImageGraphicPair(image, g2d)
   }
 
-  case class RenderInfo(frame: Int, g2d: Graphics2D, xForm: XForm2D, c3d: C3D, static: C3D)
+  case class RenderInfo(frame: Int, subFrame: Int, g2d: Graphics2D, xForm: XForm2D, c3d: C3D, static: C3D) {
+    val frameNumber = frame * nSubFrames + subFrame
+  }
+  
   def renderForcePlate(number: Int, r: RenderInfo) {
     val corners: IndexedSeq[Vec3D] = r.c3d.platforms.plates(number).corners
     val path: Path2D = {
@@ -144,6 +149,13 @@ object VCFT {
     def g: Int = c.getGreen
     def b: Int = c.getBlue
     def withAlpha(alpha: Float) = new Color(r, g, b, (alpha * 255).toInt)
+  }
+  def colorFromHex(hexString: String): Color = {
+    require(hexString.length == 6, "hexString must have six elements")
+    val rTxt = hexString.substring(0, 2)
+    val gTxt = hexString.substring(2, 4)
+    val bTxt = hexString.substring(4, 6)
+    new Color(Integer.parseInt(rTxt, 16), Integer.parseInt(gTxt, 16), Integer.parseInt(bTxt, 16))
   }
 
 }
