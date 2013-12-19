@@ -17,6 +17,7 @@ object VCFT {
   val markerOnlyDir: File = new File(outDir, "markers-only")
   val comOnlyDir: File = new File(outDir, "com-only")
   val comPathDir: File = new File(outDir, "com-path")
+  val comForceDir: File = new File(outDir, "com-force")
   val trialFile: File = new File(dataDir, "Horse 3/Horse 3 hard surface circle/Horse3_circle_left_trot_6.c3d")
   val staticFile: File = new File(dataDir, "Horse 3/Horse 3 hard surface circle/Horse3_static_virtual_2.c3d")
   lazy val trial: C3D = C3D.read(trialFile)
@@ -28,16 +29,17 @@ object VCFT {
   val nSubFrames: Int = 2
   val viewRadius: Float = 1000.0f
   val viewXShift: Float = 0.0f
-  val viewYShift: Float = -100.0f
+  val viewYShift: Float = 100.0f
   val markerDiam: Float = 20.0f
-  val stanceStart: Int = 165
-  val stanceEnd: Int = 199
+  val stanceStart: Int = 167
+  val stanceEnd: Int = 198
   // colors: http://colorschemedesigner.com/#3p31Tw0w0iiJa
   val colorA: Color = colorFromHex("06799F")
   val colorB: Color = colorFromHex("03617F")
   val colorC: Color = colorFromHex("58C1E4")
   val colorD: Color = colorFromHex("FFCF5C")
   val colorE: Color = colorFromHex("FF755C")
+  val colorF: Color = colorFromHex("FFA080")
   val fpActiveFill: Color = colorA
   val fpInactiveFill: Color = colorB
   val fpDraw: Color = colorC
@@ -46,7 +48,9 @@ object VCFT {
   val forceDraw: Color = colorC
   val comColor: Color = colorE
   val comPathColor: Color = comColor.withAlpha(0.8f)
-  val fScale: Float = 1.0f
+  val comForceColor: Color = colorF
+  val comForceButterflyColor: Color = comForceColor.withAlpha(0.75f)
+  val fScale: Float = 1.5f
   val comDiam: Float = 160.0f
 
   def main(args: Array[String]) {
@@ -64,6 +68,9 @@ object VCFT {
 
     println("Rendering COM path pass.")
     renderCOMPath()
+
+    println("Rendering COM force pass.")
+    renderCOMForce()
 
   }
 
@@ -123,6 +130,35 @@ object VCFT {
       renderSingleForce(0, renderInfo)
       renderCOMCircle(circle, renderInfo)
       renderCOM(renderInfo)
+      g.dispose()
+      ImageIO.write(image, "PNG", outFile)
+    }
+    val circlePoints: IndexedSeq[Vec2D] = Buchner.bodyCOM(static, trial).filter(_.isDefined).map(_.get).map(
+      v => Vec2D(v.x, v.y))
+    val circle: Circle = Geom.lsqCircle(circlePoints)
+    def renderFrame(frame: Int, circle: Circle) = {
+      for (subframe <- 0 until nSubFrames) renderSubFrame(frame, subframe, circle)
+    }
+    for (frame <- (startFrame until endFrame).par) renderFrame(frame, circle)
+  }
+
+  /**
+   * Renders COM force + path + markers
+   */
+  private def renderCOMForce() {
+    def renderSubFrame(frame: Int, subFrame: Int, circle: Circle) {
+      println(s"Rendering COM force frame: $frame, subframe: $subFrame")
+      val ImageGraphicPair(image, g) = createImage()
+      val renderInfo = RenderInfo(frame, subFrame, g, xForm, trial, static)
+      val outFile: File = new File(comForceDir, f"${renderInfo.frameNumber}%05d.png")
+      renderForcePlate(0, renderInfo)
+      renderPoints(renderInfo)
+      renderForceButterfly(0, renderInfo)
+      renderSingleForce(0, renderInfo)
+      renderCOMCircle(circle, renderInfo)
+      renderCOM(renderInfo)
+      renderCOMRadialButterfly(0, circle, renderInfo)
+      renderSingleCOMForce(0, circle, renderInfo)
       g.dispose()
       ImageIO.write(image, "PNG", outFile)
     }
@@ -201,7 +237,7 @@ object VCFT {
       force = plate.force(fSample)
     } {
       p.moveTo(pwa.x, pwa.y)
-      p.lineTo(force.x * fScale, force.y * fScale)
+      p.lineTo(pwa.x + force.x * fScale, pwa.y + force.y * fScale)
     }
     p.transform(r.xForm.asAffine)
     r.g2d.draw(p)
@@ -215,7 +251,7 @@ object VCFT {
     val fSample = pfSample(r.frame, r.subFrame, r.c3d)
     val pwa = plate.pwa(fSample)
     val force = plate.force(fSample)
-    val p = arrow(pwa.x, pwa.y, force.x * fScale, force.y * fScale)
+    val p = arrow(pwa.x, pwa.y, pwa.x + force.x * fScale, pwa.y + force.y * fScale)
     p.transform(r.xForm.asAffine)
     r.g2d.draw(p)
   }
@@ -248,6 +284,56 @@ object VCFT {
     r.g2d.draw(p)
   }
 
+  def renderSingleCOMForce(plateNumber: Int, c: Circle, r: RenderInfo) {
+    if (!frameInStance(r.frame)) return
+    val plate = r.c3d.platforms.plates(plateNumber)
+    val fSample = pfSample(r.frame, r.subFrame, r.c3d)
+    val force = Vec2D.fromVec3Dxy(plate.force(fSample))
+    val pCOM = Buchner.bodyCOM(static, trial)
+    val com1 = pCOM(r.frame).get
+    val com2 = pCOM(r.frame + 1).get
+    val com = com1 * (1.0f - r.frameFraction) + com2 * r.frameFraction
+    val angle = math.atan2(com.y - c.origin.y, com.x - c.origin.x).toFloat
+    val radUnit = Vec2D.fromPolar(1, angle)
+    val tanUnit = Vec2D.fromPolar(1, angle + (math.Pi / 2.0f).toFloat)
+    val fRad = radUnit * (force dot radUnit) * fScale
+    val fTan = tanUnit * (force dot tanUnit) * fScale
+    val pRad = arrow(com.x, com.y, com.x + fRad.x, com.y + fRad.y)
+    val pTan = arrow(com.x, com.y, com.x + fTan.x, com.y + fTan.y)
+    pRad.transform(r.xForm.asAffine)
+    pTan.transform(r.xForm.asAffine)
+    r.g2d.setColor(comForceColor)
+    r.g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
+    r.g2d.draw(pRad)
+    r.g2d.draw(pTan)
+  }
+
+  def renderCOMRadialButterfly(plateNumber: Int, c: Circle, r: RenderInfo) {
+    val plate = r.c3d.platforms.plates(plateNumber)
+    val pCOM = Buchner.bodyCOM(static, trial)
+    val p = new Path2D.Float()
+    for {
+      frame <- stanceStart until stanceEnd
+      subframe: Int <- 0 until nSubFrames
+      fSample = pfSample(frame, subframe, r.c3d)
+      force = Vec2D.fromVec3Dxy(plate.force(fSample))
+      com1 = pCOM(frame).get
+      com2 = pCOM(frame + 1).get
+      frameFraction = subframe.toFloat / nSubFrames.toFloat
+      com = com1 * (1.0f - frameFraction) + com2 * frameFraction
+      angle = math.atan2(com.y - c.origin.y, com.x - c.origin.x).toFloat
+      radUnit = Vec2D.fromPolar(1, angle)
+      fRad = radUnit * (force dot radUnit) * fScale
+    } {
+      p.moveTo(com.x, com.y)
+      p.lineTo(com.x + fRad.x, com.y + fRad.y)
+    }
+    p.transform(r.xForm.asAffine)
+    r.g2d.setStroke(new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
+    r.g2d.setColor(comForceButterflyColor)
+    r.g2d.draw(p)
+  }
+
   /**
    * Creates output directories if they don't already exist.
    */
@@ -257,6 +343,7 @@ object VCFT {
     mkdir(markerOnlyDir)
     mkdir(comOnlyDir)
     mkdir(comPathDir)
+    mkdir(comForceDir)
   }
 
   private def frameInStance(frame: Int): Boolean = (frame >= stanceStart) && (frame <= stanceEnd)

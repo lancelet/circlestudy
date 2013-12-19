@@ -17,6 +17,7 @@ object Geom {
 
   final case class Vec2D(x: Float, y: Float) {
     def -(v: Vec2D): Vec2D = Vec2D(x - v.x, y - v.y)
+    def *(s: Float): Vec2D = Vec2D(x * s, y * s)
     def dot(v: Vec2D): Float = x * v.x + y * v.y
     def angle: Float = atan2(y, x).toFloat
     def mag: Float = sqrt(x * x + y * y).toFloat
