@@ -2,7 +2,7 @@ package vcft
 
 import java.io.File
 import c3d.{Vec3D, C3D}
-import java.awt.geom.{Path2D, Point2D, AffineTransform}
+import java.awt.geom._
 import java.awt.{BasicStroke, Color, RenderingHints, Graphics2D}
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
@@ -22,11 +22,20 @@ object VCFT {
   val startFrame: Int = 175
   val endFrame: Int = 230
   val nSubFrames: Int = 2
-  val viewRadius: Float = 4000.0f
+  val viewRadius: Float = 1000.0f
+  val viewXShift: Float = 0.0f
+  val viewYShift: Float = -100.0f
+  val markerDiam: Float = 20.0f
+  val stanceStart: Int = 186
+  val stanceEnd: Int = 219
   val colorA: Color = colorFromHex("06799F")
-  val colorB: Color = colorFromHex("58C1E4")
-  val fpFill: Color = colorA
-  val fpDraw: Color = colorB
+  val colorB: Color = colorFromHex("03617F")
+  val colorC: Color = colorFromHex("58C1E4")
+  val colorD: Color = colorFromHex("FFCF5C")
+  val fpActiveFill: Color = colorA
+  val fpInactiveFill: Color = colorB
+  val fpDraw: Color = colorC
+  val markerFill: Color = colorD
 
   def main(args: Array[String]) {
 
@@ -50,6 +59,7 @@ object VCFT {
       val renderInfo = RenderInfo(frame, subFrame, g, xForm, trial, static)
       val outFile: File = new File(markerOnlyDir, f"${renderInfo.frameNumber}%05d.png")
       renderForcePlate(0, renderInfo)
+      renderPoints(renderInfo)
       g.dispose()
       ImageIO.write(image, "PNG", outFile)
     }
@@ -69,9 +79,10 @@ object VCFT {
   }
 
   case class RenderInfo(frame: Int, subFrame: Int, g2d: Graphics2D, xForm: XForm2D, c3d: C3D, static: C3D) {
-    val frameNumber = frame * nSubFrames + subFrame
+    val frameNumber: Int = frame * nSubFrames + subFrame
+    val frameFraction: Float = subFrame.toFloat / nSubFrames.toFloat
   }
-  
+
   def renderForcePlate(number: Int, r: RenderInfo) {
     val corners: IndexedSeq[Vec3D] = r.c3d.platforms.plates(number).corners
     val path: Path2D = {
@@ -85,11 +96,27 @@ object VCFT {
       p
     }
     val g = r.g2d
-    g.setColor(fpFill)
+    g.setColor(if (frameInStance(r.frame)) fpActiveFill else fpInactiveFill)
     g.fill(path)
     g.setColor(fpDraw)
     g.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
     g.draw(path)
+  }
+
+  def renderPoints(r: RenderInfo) {
+    val rad = markerDiam / 2.0f
+    r.g2d.setColor(markerFill)
+    for {
+      point <- r.c3d.points.points
+      v1 <- point(r.frame)
+      v2 <- point(r.frame + 1)
+      v = v1 * (1.0f - r.frameFraction) + v2 * r.frameFraction
+    } {
+      val e = new Ellipse2D.Float(v.x - rad, v.y - rad, markerDiam, markerDiam)
+      val p = new GeneralPath(e)
+      p.transform(r.xForm.asAffine)
+      r.g2d.fill(p)
+    }
   }
 
   /**
@@ -101,13 +128,15 @@ object VCFT {
     mkdir(markerOnlyDir)
   }
 
+  private def frameInStance(frame: Int): Boolean = (frame >= stanceStart) && (frame <= stanceEnd)
+
   /**
    * 2D transformations.
    */
   lazy val xForm: XForm2D = { // default transformation
     val diam = 2.0f * viewRadius
     val uScale = math.min(xRes, yRes) / diam
-    XForm2D().scale(1, -1).scale(uScale).translate(viewRadius, -viewRadius)
+    XForm2D().scale(1, -1).scale(uScale).translate(viewRadius, -viewRadius).translate(viewXShift, viewYShift)
   }
   trait XForm2D {
     def transform(p: Point2D): Point2D
