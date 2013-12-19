@@ -19,3 +19,9 @@ lazy val pwa = {
     settings(libraryDependencies := pwaDependencies).
     dependsOn(scalac3d)
 }
+
+lazy val `viz-circle-force-transformation` = (
+  CircleStudyProject("viz-circle-force-transformation").
+    settings(libraryDependencies := pwaDependencies).
+    dependsOn(scalac3d)
+)
