@@ -16,6 +16,8 @@ import java.io.File
 import java.io.FilenameFilter
 import javax.imageio.ImageIO
 
+import core.Direction
+
 object Viz {
 
   import Geom._

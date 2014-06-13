@@ -14,6 +14,8 @@ import c3d.util.transform.RotationMatrix
 import c3d.util.transform.XForm
 import Geom._
 
+import core.{MotionTrial, Direction, Gait}
+
 object PWA {
   
   val OnlyOneHorse: Boolean = false /* flag to indicate only use one horse */ 
@@ -138,23 +140,7 @@ object PWA {
       pwaTable.close()
     }
   }
-  
-  sealed trait Direction {
-    import Direction._
-    def isCircle: Boolean = (this == CircleLeft) || (this == CircleRight)
-  }
-  object Direction {
-    object Straight    extends Direction { override def toString = "straight"     }
-    object CircleRight extends Direction { override def toString = "circle right" }
-    object CircleLeft  extends Direction { override def toString = "circle left"  }    
-  }
-  
-  sealed trait Gait
-  object Gait {
-    object Walk extends Gait { override def toString = "walk" }
-    object Trot extends Gait { override def toString = "trot" }    
-  }
-  
+
   sealed trait Limb {
     import Limb._
     def isForelimb: Boolean = (this == LF) || (this == RF)
@@ -561,12 +547,6 @@ object PWA {
       case CircleRight => (limb == LF) || (limb == LH)
       case Straight    => false
     }
-  }
-
-  trait MotionTrial {
-    def direction: Direction
-    def gait: Gait
-    def c3d: C3D
   }
 
 }
