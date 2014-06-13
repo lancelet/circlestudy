@@ -1,7 +1,11 @@
 package core
 
+import scala.collection.immutable._
+
 import java.io.File
+
 import c3d.C3D
+
 
 /** Horse. */
 final case class Horse(id: Int)
@@ -37,6 +41,24 @@ object Gait {
  * @param dataDir  top-level data directory
  */
 class DataStore(dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/data")) {
+
+}
+
+object DataStore {
+
+  /**
+   * Searches through all sub-directories for files whose names match a given predicate.
+   *
+   * @param parentDir parent directory
+   * @param namePredicate predicate for the names
+   * @return files that match the given name
+   */
+  def deepFileSearch(parentDir: File, namePredicate: String => Boolean): Seq[File] = {
+    val dirFiles = parentDir.listFiles.to[Seq]
+    val matchingFiles = dirFiles.filter { f: File => namePredicate(f.getName) }
+    val subdirs = dirFiles.filter(_.isDirectory)
+    matchingFiles ++ subdirs.flatMap(deepFileSearch(_, namePredicate))
+  }
 
 }
 

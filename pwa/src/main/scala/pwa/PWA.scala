@@ -14,7 +14,10 @@ import c3d.util.transform.RotationMatrix
 import c3d.util.transform.XForm
 import Geom._
 
-import core.{MotionTrial, Direction, Gait, Horse}
+import core._
+import scala.Some
+import core.Horse
+import pwa.Geom.Circle
 
 object PWA {
   
@@ -201,7 +204,7 @@ object PWA {
   
   def staticC3D(horse: Horse): C3D = {
     def fmatcher(name: String): Boolean = name.startsWith(s"Horse${horse.id}_") && name.contains("static_virtual")
-    val files: Seq[File] = recursiveFileSearch(dataDir, fmatcher)
+    val files: Seq[File] = DataStore.deepFileSearch(dataDir, fmatcher)
     assert(files.length == 1, s"${files.length} static virtual files found for horse ${horse.id}")
     try {
       C3D.read(files.head)
@@ -218,7 +221,7 @@ object PWA {
       name.startsWith(s"Horse${horse.id}_") && (name.contains("walk") || name.contains("trot")) &&
       name.endsWith(".c3d")
     )
-    val files: Seq[File] = recursiveFileSearch(dataDir, fmatcher)
+    val files: Seq[File] = DataStore.deepFileSearch(dataDir, fmatcher)
     case class FileMotionTrial(file: File) extends MotionTrial {
       import Direction._
       import Gait._
@@ -503,16 +506,7 @@ object PWA {
     val deltaX: Float = abs(da * circle.radius)
     deltaX / deltaT
   }
-  
-  def recursiveFileSearch(parentDir: File, fileNameMatcher: String => Boolean): Seq[File] = {
-    val filter: FilenameFilter = new FilenameFilter {
-      def accept(dir: File, name: String): Boolean = fileNameMatcher(name)
-    }
-    val curDirFiles: Seq[File] = parentDir.listFiles(filter).to[Seq]
-    val curDirDirs: Seq[File] = parentDir.listFiles.filter(_.isDirectory).to[Seq]
-    curDirFiles ++ curDirDirs.flatMap(recursiveFileSearch(_, fileNameMatcher))
-  }
-  
+
   def peakForce(footfall: Footfall): Float = {
     val plate: ForcePlate = footfall.interval.plate
     val fpRate: Float = plate.rate
