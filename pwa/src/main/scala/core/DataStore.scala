@@ -3,6 +3,9 @@ package core
 import java.io.File
 import c3d.C3D
 
+/** Horse. */
+final case class Horse(id: Int)
+
 /** Single motion (non-static) trial. */
 trait MotionTrial {
   def direction: Direction

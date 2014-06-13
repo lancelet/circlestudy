@@ -14,7 +14,7 @@ import c3d.util.transform.RotationMatrix
 import c3d.util.transform.XForm
 import Geom._
 
-import core.{MotionTrial, Direction, Gait}
+import core.{MotionTrial, Direction, Gait, Horse}
 
 object PWA {
   
@@ -159,7 +159,6 @@ object PWA {
     }
   }
   
-  final case class Horse (id: Int)
   def horses: Seq[Horse] = {
     if (OnlyOneHorse) {
       Seq(Horse(10))
