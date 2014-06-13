@@ -218,7 +218,14 @@ object PWA {
     def fmatcher(name: String): Boolean = name.startsWith(s"Horse${horse.id}_") && name.contains("static_virtual")
     val files: Seq[File] = recursiveFileSearch(dataDir, fmatcher)
     assert(files.length == 1, s"${files.length} static virtual files found for horse ${horse.id}")
-    C3D.read(files.head)
+    try {
+      C3D.read(files.head)
+    } catch {
+      case ex: IllegalArgumentException => {
+        println(s"Could not read file ${files.head.getName}")
+        throw ex
+      }
+    }
   }
 
   def motionTrials(horse: Horse): Seq[MotionTrial] = {
