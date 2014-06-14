@@ -117,6 +117,44 @@ object Geom {
     val length: Int = sourcePoint.length
     private [this] val vecArray: Array[Option[Vec3D]] = sourcePoint.toArray
     def apply(index: Int): Option[Vec3D] = vecArray(index)
-  }  
+  }
+
+  /**
+   * Computes the average coordinate of some point over a given range.
+   *
+   * Samples at which the point is undefined are ignored.
+   *
+   * @param p point
+   * @param start start of the range (inclusive)
+   * @param end end of the range (inclusive)
+   * @return average coordinates of the point
+   */
+  def averagePt(p: Point, start: Int, end: Int): Vec3D = {
+    var x, y, z: Float = 0.0f
+    var n: Int = 0
+
+    var i: Int = start
+    while (i <= end) {
+      val vOpt: Option[Vec3D] = p(i)
+      if (vOpt.isDefined) {
+        val v: Vec3D = vOpt.get
+        x += v.x; y += v.y; z += v.z
+        n += 1
+      }
+      i += 1
+    }
+
+    Vec3D(x / n, y / n, z / n)
+  }
+
+  /**
+   * Computes the average coordinates of a point over its entire range.
+   *
+   * Samples at which the point is undefined are ignored.
+   *
+   * @param p point
+   * @return average coordinates
+   */
+  def averagePt(p: Point): Vec3D = averagePt(p, 0, p.length - 1)
   
 }

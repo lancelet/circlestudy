@@ -5,6 +5,8 @@ import scala.collection.immutable._
 import c3d._
 import c3d.util.transform.VirtualPoint
 import core.DataStore.RichC3D
+import Geom.averagePt
+
 
 /**
  * Segment properties from:
@@ -85,7 +87,7 @@ object Buchner {
   def leftToRight(c3d: C3D, 
       markerNames: Seq[String] = Seq("Atlas", "TuberCoxaeUpper", "TuberCoxae", "Rib1", "Rib2", "Hip")): Vec3D = 
   {
-    def avg(name: String): Vec3D = PWA.averagePt(c3d.getCSPoint(name).get)
+    def avg(name: String): Vec3D = averagePt(c3d.getCSPoint(name).get)
     def lr(name: String): Vec3D = (avg(s"R$name") - avg(s"L$name")).asUnit
     markerNames.map(lr(_)).foldLeft(Vec3D(0,0,0))(_ + _).asUnit
   }
@@ -99,7 +101,7 @@ object Buchner {
     val relativeMass: Float, cloud: IndexedSeq[String], flipLtoR: Boolean) extends MassiveBody
   {
     def point(static: C3D, c3d: C3D): Point = {
-      def sAvg(name: String): Vec3D = PWA.averagePt(static.getCSPoint(name).get)
+      def sAvg(name: String): Vec3D = averagePt(static.getCSPoint(name).get)
       def ssAvg(names: Seq[String]): Vec3D = names.map(sAvg).foldLeft(Vec3D(0,0,0))(_ + _) / names.length
       
       // find COM in the static trial

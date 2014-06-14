@@ -41,10 +41,7 @@ object PWA {
         def c3d: C3D = c3do
       }
       val trialFootfalls = footfallsInTrial(static, motionTrial)
-      val hoofPoints = (hoofPointsForLimb(static, c3do, Limb.LF) ++
-        hoofPointsForLimb(static, c3do, Limb.RF) ++
-        hoofPointsForLimb(static, c3do, Limb.LH) ++
-        hoofPointsForLimb(static, c3do, Limb.RH))
+      val hoofPoints = c3do.hoofPointsForAllLimbs(static)
       val segmentCOMs: Seq[Point] = Buchner.MB.bodies.map(_.point(static, c3do)).map(new MemoizedPoint(_))
       val bodyCOM: Point = new MemoizedPoint(Buchner.bodyCOM(static, c3do))
       val outFile = new File(outDir, "Horse3_circle_right_trot_2.m4v")
@@ -95,10 +92,7 @@ object PWA {
         trial: MotionTrial <- dataStore.motionTrials(horse)
         c3d: C3D = trial.c3d.valueOr { t: Throwable => throw t }
         trialFootfalls = footfallsInTrial(static, trial)
-        hoofPoints = (hoofPointsForLimb(static, c3d, Limb.LF) ++
-          hoofPointsForLimb(static, c3d, Limb.RF) ++
-          hoofPointsForLimb(static, c3d, Limb.LH) ++
-          hoofPointsForLimb(static, c3d, Limb.RH))
+        hoofPoints = c3d.hoofPointsForAllLimbs(static)
         segmentCOMs: Seq[Point] = Buchner.MB.bodies.map(_.point(static, c3d)).map(new MemoizedPoint(_))
         bodyCOM: Point = new MemoizedPoint(Buchner.bodyCOM(static, c3d))
       } Viz.make_movie(c3d, outFile(c3d.source), imgDir, 4000.0f, trialFootfalls, hoofPoints, segmentCOMs, bodyCOM)
@@ -175,7 +169,7 @@ object PWA {
     // find closest limb
     val closest: Limb = closestLimb(c3d, interval)
     // all markers for closest limb must be within the force plate
-    val markers: Seq[Point] = hoofPointsForLimb(static, c3d, closest)
+    val markers: Seq[Point] = c3d.hoofPointsForLimb(closest, static)
     if (markers.forall(pointWithinPlateForWholeInterval(_, interval))) {
       Some(closest)
     } else {
@@ -191,13 +185,13 @@ object PWA {
   }
   
   def worldToHoofTransform(static: C3D, c3d: C3D, interval: ContactInterval, limb: Limb): XForm = {
-    val hoofPoints: Seq[Point] = hoofPointsForLimb(static, c3d, limb)
+    val hoofPoints: Seq[Point] = c3d.hoofPointsForLimb(limb, static)
     val medPoint: Point = hoofPoints.find(_.name.contains("HoofMedquarter")).get
     val latPoint: Point = hoofPoints.find(_.name.contains("HoofLatquarter")).get
     val dorPoint: Point = hoofPoints.find(_.name.contains("HoofToe")).get
-    val med: Vec3D = averagePtOverRange(medPoint, interval.percent20, interval.percent80)
-    val lat: Vec3D = averagePtOverRange(latPoint, interval.percent20, interval.percent80)
-    val dor: Vec3D = averagePtOverRange(dorPoint, interval.percent20, interval.percent80)
+    val med: Vec3D = averagePt(medPoint, interval.percent20, interval.percent80)
+    val lat: Vec3D = averagePt(latPoint, interval.percent20, interval.percent80)
+    val dor: Vec3D = averagePt(dorPoint, interval.percent20, interval.percent80)
     val origin: Vec3D = {
       val o = (med + lat) / 2.0f
       Vec3D(o.x, o.y, 0)
@@ -309,49 +303,7 @@ object PWA {
       LH
     }
   }
-  
-  def hoofPointsForLimb(static: C3D, c3d: C3D, limb: Limb): Seq[Point] = {
-    val motionPoints: IndexedSeq[Point] = c3d.motionHoofPointsForLimb(limb)
-    val virtualPoints: Seq[Point]       = virtualHoofPointsForLimb(static, c3d, limb, motionPoints)
-    motionPoints ++ virtualPoints
-  }
 
-  def virtualHoofPointsForLimb(static: C3D, c3d: C3D, limb: Limb, motionPoints: IndexedSeq[Point]): Seq[Point] = {
-    val ls = limb.toString
-    val baseNames: Seq[String] = Seq("HoofLatHeel", "HoofLatquarter", "HoofToe", "HoofMedquarter", "HoofMedHeel")
-    val names: Seq[String] = baseNames.map(bn => s"$ls$bn")
-    val staticRefs: IndexedSeq[Vec3D] = for {
-      name <- motionPoints.map(_.description)
-      staticPt: Point = static.getCSPoint(name).get
-    } yield averagePt(staticPt)
-    for {
-      name <- names
-      staticPt: Point = static.getCSPoint(name).get
-    } yield (new MemoizedPoint(VirtualPoint(name, "", averagePt(staticPt), staticRefs, motionPoints)))
-  }
-  
-  def averagePtOverRange(p: Point, start: Int, end: Int): Vec3D = {
-    var x: Float = 0.0f
-    var y: Float = 0.0f
-    var z: Float = 0.0f
-    var n: Int = 0
-    var i: Int = start
-    while (i <= end) {
-      val vOpt: Option[Vec3D] = p(i)
-      if (vOpt.isDefined) {
-        val v: Vec3D = vOpt.get
-        x += v.x
-        y += v.y
-        z += v.z
-        n += 1
-      }
-      i += 1
-    }
-    Vec3D(x / n, y / n, z / n)
-  }
-  
-  def averagePt(p: Point): Vec3D = averagePtOverRange(p, 0, p.length - 1)
-  
   def t6Circle(c3d: C3D): Circle = {
     val t6: Point = c3d.getCSPoint("T6").get
     val firstIndex: Int = t6.indexWhere(_.isDefined)
