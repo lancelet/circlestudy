@@ -7,9 +7,6 @@ import core.DataStore.{ RichC3D => DataStoreRichC3D }
 import core.PlateUtils.{ RichC3D => PlateUtilsRichC3D, RichPoint }
 import pwa.Geom.{Rot2D, Vec2D, MemoizedPoint, averagePt}
 import c3d.util.transform.{RotationMatrix, XForm, VirtualPoint}
-import scala.math._
-import scala.Some
-import scala.collection.immutable.::
 
 
 /** Limb of the horse */
@@ -221,24 +218,37 @@ object MarkerSet {
     }
 
     implicit class RichVec3D(v: Vec3D) {
+
+      /** Projects a vector to z=0 */
       def projectToZ: Vec3D = Vec3D(v.x, v.y, 0)
+
     }
 
+    /**
+     * Finds the average world positioning of the hoof coordinate system for a particular contact
+     * interval.
+     *
+     * The hoof coordinate system is projected to the z = 0 plane.
+     *
+     * @param static static trial
+     * @param interval interval for which to find the hoof positioning
+     * @return average world-space positioning of the hoof coordinate system
+     */
     def hoofCoordsForInterval(static: C3D, interval: ContactInterval): Option[HoofCoordsInWorld] = {
       limbForContactInterval(static, interval).flatMap { limb: Limb =>
         val hoofPts = c3d.hoofPointsForLimb(limb, static)
         def middleAvg(ptName: String): Option[Vec3D] =
           hoofPts
             .find(_.name.contains(ptName))
-            .map { p: Point => averagePt(p, interval.percent20, interval.percent80) }
+            .map(averagePt(_, interval.percent20, interval.percent80))
         for {
           med <- middleAvg("HoofMedquarter")
           lat <- middleAvg("HoofLatquarter")
           dor <- middleAvg("HoofToe")
         } yield new HoofCoordsInWorld {
           val originInWorld: Vec3D = ((med + lat) / 2.0f).projectToZ
-          val yVecInWorld: Vec3D = (dor - originInWorld).projectToZ.asUnit
-          val xVecInWorld: Vec3D = Rot2D(math.toRadians(-90)).asRotationMatrix(yVecInWorld)
+          val yVecInWorld: Vec3D   = (dor - originInWorld).projectToZ.asUnit
+          val xVecInWorld: Vec3D   = Rot2D(math.toRadians(-90)).asRotationMatrix(yVecInWorld)
         }
       }
     }
