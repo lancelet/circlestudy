@@ -39,6 +39,7 @@ object Gait {
   case object Trot extends Gait { override def toString = "trot" }
 }
 
+
 /**
  * Represents the total store of data for the project.
  *
@@ -107,7 +108,36 @@ class DataStore(dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/d
 
   }
 
+  /**
+   * Returns the complete list of horses for which there are trials.
+   *
+   * If `useOnly` is provided then only the horses which appear in that list and also in the actual
+   * set of trials are used.
+   *
+   * @param useOnly return only these horses if they have trials
+   * @return sequence of horses
+   */
+  def horses(useOnly: Seq[Horse] = Seq.empty[Horse]): Seq[Horse] = {
+
+    def allHorsesOnDisk: Seq[Horse] = {
+      val subdirs: Seq[File] = dataDir.listFiles.to[Seq].filter(_.isDirectory)
+      val prefix = "Horse "
+      val numberStrings: Seq[String] = subdirs
+        .map(_.getName)
+        .filter(_.startsWith(prefix))
+        .map(_.drop(prefix.length))
+      numberStrings.map(_.toInt).map(Horse).sortBy(_.id)
+    }
+
+    val ids = useOnly.map(_.id)
+    def keepHorse(h: Horse): Boolean = if (useOnly.isEmpty) true else ids.contains(h.id)
+
+    allHorsesOnDisk.filter(keepHorse)
+
+  }
+
 }
+
 
 object DataStore {
 

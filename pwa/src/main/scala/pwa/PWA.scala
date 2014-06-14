@@ -58,7 +58,7 @@ object PWA {
     
     // export stride data for Sandra
     if (true) {
-      val curHorses: Seq[Horse] = horses
+      val curHorses: Seq[Horse] = dataStore.horses(if (OnlyOneHorse) Seq(Horse(3)) else Seq.empty)
       val strideDataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/output/stride-timings")
       def csvFileNameFromC3DFileName(c3dFileName: String): String = {
         val f = new File(c3dFileName)
@@ -120,7 +120,7 @@ object PWA {
       
       // iterate over all horses, writing footfall data
       for {
-        horse <- horses
+        horse <- dataStore.horses(if (OnlyOneHorse) Seq(Horse(3)) else Seq.empty)
         footfall <- footfalls(horse)
         fileName = footfall.c3d.source
         horseId = horse.id
@@ -165,17 +165,7 @@ object PWA {
       case _ => throw new IllegalArgumentException(s"limb '$s' is invalid")
     }
   }
-  
-  def horses: Seq[Horse] = {
-    if (OnlyOneHorse) {
-      Seq(Horse(10))
-    } else {
-      val subdirs: Seq[File] = dataDir.listFiles.to[Seq].filter(_.isDirectory)
-      val horseNumberStrings: Seq[String] = subdirs.map(_.getName).filter(_.startsWith("Horse")).map(_.drop(6))
-      horseNumberStrings.map((s: String) => Horse(s.toInt)).sortBy(_.id)
-    }
-  }
-  
+
   def getPoint(c3d: C3D, name: String): Point = {
     // mapping of unusual names encountered in the trials (spelling mistakes)
     val oddNameMapping: Map[String, String] = Map (
