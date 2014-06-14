@@ -8,8 +8,6 @@ import core.PlateUtils.{ RichC3D => PlateUtilsRichC3D, RichPoint }
 import pwa.Geom._
 import c3d.util.transform.{RotationMatrix, XForm, VirtualPoint}
 import pwa.Geom.Rot2D
-import scala.Some
-import scala.collection.immutable.::
 
 
 /** Limb of the horse */
@@ -308,6 +306,28 @@ object MarkerSet {
 
       if (direction.isCircle) circles else straight
 
+    }
+
+    /**
+     * Computes the force-weighted PWA (point of wrench application) in world coordinates.
+     *
+     * @param interval contact interval
+     * @return force-weighted PWA in world coordinates
+     */
+    def forceWeightedPWADuringContact(interval: ContactInterval): Vec3D = {
+      val staForceIndex = PlateUtilsRichC3D(c3d).ptToFp(interval.on)
+      val endForceIndex = PlateUtilsRichC3D(c3d).ptToFp(interval.off)
+
+      val mag = interval.plate.force.slice(staForceIndex, endForceIndex).map(_.mag)
+      val pwa = interval.plate.pwa.slice(staForceIndex, endForceIndex)
+      assert(mag.length == pwa.length)
+
+      def notNan(v: Vec3D): Boolean = (!v.x.isNaN) && (!v.y.isNaN) && (!v.z.isNaN)
+
+      val pwaWSum = (pwa zip mag)
+        .map { case (p: Vec3D, m: Float) => if (notNan(p)) p * m else Vec3D(0,0,0) }  // TODO: ?
+        .reduce ( _ + _ )
+      pwaWSum / mag.sum
     }
 
   }

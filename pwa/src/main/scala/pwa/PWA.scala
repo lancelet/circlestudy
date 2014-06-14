@@ -166,38 +166,9 @@ object PWA {
 
   def forceWeightedPWA(static: C3D, c3d: C3D, interval: ContactInterval): Vec2D = {
     val worldToHoof: XForm = c3d.hoofCoordsForInterval(static, interval).get.worldToHoof
-    val weightedPWA: Vec3D = pwaWeightedDuringContact(c3d, interval)
+    val weightedPWA: Vec3D = c3d.forceWeightedPWADuringContact(interval)
     val hoofPWA: Vec3D = worldToHoof(weightedPWA)
     Vec2D(hoofPWA.x, hoofPWA.y)
-  }
-
-  def pwaWeightedDuringContact(c3d: C3D, interval: ContactInterval): Vec3D = {
-    val pointRate: Float = c3d.points.rate
-    val analogRate: Float = c3d.platforms.rate
-    val rateFactor: Int = (analogRate / pointRate).toInt
-    val startForceIndex: Int = rateFactor * interval.on
-    val endForceIndex: Int   = rateFactor * interval.off
-    val mag: IndexedSeq[Float] = interval.plate.force.slice(startForceIndex, endForceIndex).map(_.mag)
-    val pwa: IndexedSeq[Vec3D] = interval.plate.pwa.slice(startForceIndex, endForceIndex)
-    assert(mag.length == pwa.length)
-    var x: Double = 0.0
-    var y: Double = 0.0
-    var z: Double = 0.0
-    var weightSum: Double = 0.0
-    var i: Int = 0
-    while (i < mag.length) {
-      val m: Float = mag(i)
-      val v: Vec3D = pwa(i)
-      if (!v.x.isNaN && !v.y.isNaN && !v.z.isNaN) {  // why would these ever be NaN?  some issue with PWA routine
-        x += v.x * m
-        y += v.y * m
-        z += v.z * m
-        weightSum += m
-      }
-      i += 1
-    }
-    assert(weightSum > 0.0)
-    Vec3D((x / weightSum).toFloat, (y / weightSum).toFloat, (z / weightSum).toFloat)
   }
 
   def peakForce(footfall: Footfall): Float = {
