@@ -278,6 +278,38 @@ object MarkerSet {
       )
     }
 
+    /**
+     * Finds the average speed of the T6 marker for a trial.
+     *
+     * In the case of a straight line trial, this is done by comparing the end and start marker
+     * positions.  For a circular trial, the subtended angle is calculated and the radius of a
+     * T6 marker circle is used.
+     *
+     * @param direction direction of the trial
+     * @return T6 marker speed
+     */
+    def t6AverageSpeed(direction: Direction): Float = {
+
+      val t6 = DataStoreRichC3D(c3d).getCSPoint("T6").get
+      val sta = t6.indexWhere(_.isDefined)
+      val end = t6.lastIndexWhere(_.isDefined)
+      val pSta = t6(sta).get
+      val pEnd = t6(end).get
+      val dT = (end - sta) / c3d.points.rate
+
+      def straight: Float = (pEnd - pSta).mag / dT
+
+      def circles: Float = {
+        val circle = c3d.t6CircleThrough3Points
+        val aSta = Vec2D.fromVec3Dxy(pSta).angle
+        val aEnd = Vec2D.fromVec3Dxy(pEnd).angle
+        (aEnd - aSta) * circle.radius / dT
+      }
+
+      if (direction.isCircle) circles else straight
+
+    }
+
   }
 
   /** Suffixes the name of a hoof marker to a limb identifier. */

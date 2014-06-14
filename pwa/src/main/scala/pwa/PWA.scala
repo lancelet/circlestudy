@@ -124,7 +124,7 @@ object PWA {
       } {
         val inoutPos: Float = if (direction == CircleLeft) x else if (direction == CircleRight) -x else x
         val radius: Float = if (direction.isCircle) footfall.c3d.t6CircleThrough3Points.radius else -1.0f
-        val speed: Float = trialT6Speed(footfall.c3d, direction) / 1000.0f // m/s
+        val speed: Float = footfall.c3d.t6AverageSpeed(direction) / 1000.0f // m/s
         val fPeak: Float = peakForce(footfall)
         pwaTable.write(s"$fileName,$horseId,$direction,$isCircle,$gait,$limb,$isForelimb,$plateNumber,$x,$y,")
         pwaTable.write(s"$inoutPos,$radius,$speed,$outerLimb,$fPeak\n")
@@ -198,33 +198,6 @@ object PWA {
     }
     assert(weightSum > 0.0)
     Vec3D((x / weightSum).toFloat, (y / weightSum).toFloat, (z / weightSum).toFloat)
-  }
-
-  def trialT6Speed(c3d: C3D, direction: Direction): Float = 
-    if (direction.isCircle) circleTrialT6Speed(c3d) else straightTrialT6Speed(c3d)
-  
-  def straightTrialT6Speed(c3d: C3D): Float = {
-    val t6: Point = c3d.getCSPoint("T6").get
-    val firstIndex: Int = t6.indexWhere(_.isDefined)
-    val lastIndex:  Int = t6.lastIndexWhere(_.isDefined)
-    val deltaT: Float = (lastIndex - firstIndex) / c3d.points.rate
-    val deltaX: Float = (t6(lastIndex).get - t6(firstIndex).get).mag
-    deltaX / deltaT
-  }
-  
-  def circleTrialT6Speed(c3d: C3D): Float = {
-    val circle: Circle = c3d.t6CircleThrough3Points
-    val t6: Point = c3d.getCSPoint("T6").get
-    val firstIndex: Int = t6.indexWhere(_.isDefined)
-    val lastIndex:  Int = t6.lastIndexWhere(_.isDefined)
-    val p0: Vec3D = t6(firstIndex).get
-    val p1: Vec3D = t6(lastIndex).get
-    val a0: Double = atan2(p0.y - circle.origin.y, p0.x - circle.origin.x)
-    val a1: Double = atan2(p1.y - circle.origin.y, p1.x - circle.origin.x)
-    val da: Float = (a1 - a0).toFloat
-    val deltaT: Float = (lastIndex - firstIndex) / c3d.points.rate
-    val deltaX: Float = abs(da * circle.radius)
-    deltaX / deltaT
   }
 
   def peakForce(footfall: Footfall): Float = {
