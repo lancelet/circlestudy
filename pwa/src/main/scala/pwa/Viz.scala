@@ -16,13 +16,12 @@ import java.io.File
 import java.io.FilenameFilter
 import javax.imageio.ImageIO
 
-import core.Direction
+import core._
 
 object Viz {
 
   import Geom._
-  import PWA._
-  
+
   def make_movie(c3d: C3D, outFile: File, workingDir: File, radius: Float, footfalls: Seq[Footfall], 
       hoofPoints: Seq[Point], segmentCOMs: Seq[Point], bodyCOM: Point, res: Int = 1024)
   {

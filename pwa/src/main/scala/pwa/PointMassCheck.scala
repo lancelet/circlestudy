@@ -10,7 +10,7 @@ import java.io.File
 import java.io.FileWriter
 import java.io.Writer
 
-import core.{Direction, Gait, Horse}
+import core._
 
 object PointMassCheck {
 
