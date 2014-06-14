@@ -2,10 +2,7 @@ package core
 
 import scala.collection.immutable._
 
-import pwa.Geom.Vec2D
-import c3d.{Point, ForcePlate, C3D}
-
-import DataStore.{ RichC3D => DataStoreRichC3D }
+import c3d.{ForcePlate, C3D}
 
 
 /**
