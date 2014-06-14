@@ -10,7 +10,8 @@ import c3d.util.transform.{RotationMatrix, VirtualPoint, XForm}
 
 import Geom._
 import core._
-import core.DataStore.RichC3D
+import core.DataStore.{ RichC3D => DataStoreRichC3D }
+import core.HoofUtils.{ RichC3D => HoofUtilsRichC3D }
 import scala.Some
 import pwa.Geom.Circle
 
@@ -158,7 +159,7 @@ object PWA {
     case class FileFootfall(direction: Direction, gait: Gait, plateNumber: Int, 
             forceWeightedPWA: Vec2D, limb: Limb, interval: ContactInterval, c3d: C3D) extends Footfall
     for {
-      contactInterval <- contactIntervals(c3d)
+      contactInterval <- c3d.contactIntervals(forceThreshold, minContactDuration)
       limbOpt = limbForContactInterval(static, c3d, contactInterval)
       if (limbOpt.isDefined)
     } yield {
@@ -168,31 +169,7 @@ object PWA {
       FileFootfall(motion.direction, motion.gait, plateNumber, pwa, limb, contactInterval, c3d)
     }
   }
-  
-  def contactIntervals(c3d: C3D): Seq[ContactInterval] = {
-    val fpRate: Float = c3d.platforms.rate
-    val ptRate: Float = c3d.points.rate
-    val resampleFactor: Int = (fpRate / ptRate).toInt
-    val ciByPlate: Seq[Seq[ContactInterval]] = for {
-      plate <- c3d.platforms.plates
-      forceMag = plate.force.resampleByAveraging(resampleFactor).map(_.mag)
-    } yield {
-      def accum(accumCI: Seq[ContactInterval], startIndex: Int): Seq[ContactInterval] = {
-        val on: Int  = forceMag.indexWhere(_ >= forceThreshold, startIndex)
-        val off: Int = forceMag.indexWhere(_ < forceThreshold, on)
-        if (on == -1 || off == -1) {
-          accumCI.reverse
-        } else {
-          accum(ContactInterval(on, off, plate) +: accumCI, off)
-        }
-      }
-      accum(Seq.empty[ContactInterval], 0)
-    }
-    val minDurationInSamples: Int = (minContactDuration * ptRate).toInt
-    def exceedsMinDuration(c: ContactInterval): Boolean = (c.off - c.on) >= minDurationInSamples
-    ciByPlate.flatten.filter(exceedsMinDuration(_))
-  }
-  
+
   def limbForContactInterval(static: C3D, c3d: C3D, interval: ContactInterval): Option[Limb] = {
     // find closest limb
     val closest: Limb = closestLimb(c3d, interval)
