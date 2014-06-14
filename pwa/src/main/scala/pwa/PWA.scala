@@ -12,6 +12,7 @@ import Geom._
 import core._
 import core.DataStore.{ RichC3D => DataStoreRichC3D }
 import core.HoofUtils.{ RichC3D => HoofUtilsRichC3D }
+import core.MarkerSet.{ RichC3D => MarkerSetRichC3D }
 import scala.Some
 import pwa.Geom.Circle
 
@@ -310,18 +311,11 @@ object PWA {
   }
   
   def hoofPointsForLimb(static: C3D, c3d: C3D, limb: Limb): Seq[Point] = {
-    val motionPoints: IndexedSeq[Point] = motionHoofPointsForLimb(c3d, limb)
+    val motionPoints: IndexedSeq[Point] = c3d.motionHoofPointsForLimb(limb)
     val virtualPoints: Seq[Point]       = virtualHoofPointsForLimb(static, c3d, limb, motionPoints)
     motionPoints ++ virtualPoints
   }
-  
-  def motionHoofPointsForLimb(c3d: C3D, limb: Limb): IndexedSeq[Point] = {
-    val ls = limb.toString
-    val baseNames: IndexedSeq[String] = IndexedSeq("HoofLatBottom", "Heel", "HoofLatTop", "HoofDorsal")
-    val names: IndexedSeq[String] = baseNames.map(bn => s"$ls$bn")
-    for (name <- names) yield c3d.getCSPoint(name).get
-  }
-  
+
   def virtualHoofPointsForLimb(static: C3D, c3d: C3D, limb: Limb, motionPoints: IndexedSeq[Point]): Seq[Point] = {
     val ls = limb.toString
     val baseNames: Seq[String] = Seq("HoofLatHeel", "HoofLatquarter", "HoofToe", "HoofMedquarter", "HoofMedHeel")
