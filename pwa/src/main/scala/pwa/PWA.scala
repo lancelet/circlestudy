@@ -158,17 +158,10 @@ object PWA {
       if (limbOpt.isDefined)
     } yield {
       val limb = limbOpt.get
-      val pwa = forceWeightedPWA(static, c3d, contactInterval)
+      val pwa = c3d.forceWeightedPWAInHoofCoords(static, contactInterval)
       val plateNumber: Int = c3d.platforms.plates.indexOf(contactInterval.plate) + 1
       FileFootfall(motion.direction, motion.gait, plateNumber, pwa, limb, contactInterval, c3d)
     }
-  }
-
-  def forceWeightedPWA(static: C3D, c3d: C3D, interval: ContactInterval): Vec2D = {
-    val worldToHoof: XForm = c3d.hoofCoordsForInterval(static, interval).get.worldToHoof
-    val weightedPWA: Vec3D = c3d.forceWeightedPWADuringContact(interval)
-    val hoofPWA: Vec3D = worldToHoof(weightedPWA)
-    Vec2D(hoofPWA.x, hoofPWA.y)
   }
 
   def peakForce(footfall: Footfall): Float = {

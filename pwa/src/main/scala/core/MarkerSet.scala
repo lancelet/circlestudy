@@ -330,6 +330,20 @@ object MarkerSet {
       pwaWSum / mag.sum
     }
 
+    /**
+     * Finds the force-weighted PWA (point of wrench application), and transforms it into the
+     * hoof-local coordinate system.
+     *
+     * @param static static C3D trial for the horse
+     * @param interval contact interval
+     * @return 2D vector in the hoof-local coordinate system
+     */
+    def forceWeightedPWAInHoofCoords(static: C3D, interval: ContactInterval): Vec2D = {
+      val worldToHoof = c3d.hoofCoordsForInterval(static, interval).get.worldToHoof
+      val weightedPWA = forceWeightedPWADuringContact(interval)
+      Vec2D.fromVec3Dxy(worldToHoof(weightedPWA))
+    }
+
   }
 
   /** Suffixes the name of a hoof marker to a limb identifier. */
