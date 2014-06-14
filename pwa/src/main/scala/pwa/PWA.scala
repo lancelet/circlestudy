@@ -1,24 +1,16 @@
 package pwa
 
 import scala.math._
-import scala.collection.breakOut
 import scala.collection.immutable._
-import scala.collection.mutable.Buffer
-import java.io.File
-import java.io.FilenameFilter
-import java.io.FileWriter
-import java.io.Writer
+
+import java.io.{File, FileWriter, Writer}
+
 import c3d._
-import c3d.util.transform.VirtualPoint
-import c3d.util.transform.RotationMatrix
-import c3d.util.transform.XForm
+import c3d.util.transform.{RotationMatrix, VirtualPoint, XForm}
+
 import Geom._
-
-import scalaz.{-\/, \/-}
-
 import core._
 import scala.Some
-import core.Horse
 import pwa.Geom.Circle
 
 object PWA {
