@@ -14,6 +14,8 @@ import c3d.util.transform.RotationMatrix
 import c3d.util.transform.XForm
 import Geom._
 
+import scalaz.{-\/, \/-}
+
 import core._
 import scala.Some
 import core.Horse
@@ -27,6 +29,8 @@ object PWA {
   val dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/data")
   val forceThreshold: Float = 150.0f // N
   val minContactDuration: Float = 0.1f // s
+
+  val dataStore = new DataStore(dataDir)
 
   def main(args: Array[String]) = {
 
@@ -93,8 +97,8 @@ object PWA {
       for {
         horse: Horse <- curHorses
         static: C3D = staticC3D(horse)
-        trial: MotionTrial <- motionTrials(horse)
-        c3d: C3D = trial.c3d
+        trial: MotionTrial <- dataStore.motionTrials(horse)
+        c3d: C3D = trial.c3d.valueOr { t: Throwable => throw t }
         trialFootfalls = footfallsInTrial(static, trial)
         hoofPoints = (hoofPointsForLimb(static, c3d, Limb.LF) ++
           hoofPointsForLimb(static, c3d, Limb.RF) ++
@@ -193,11 +197,12 @@ object PWA {
   
   def footfalls(horse: Horse): Seq[Footfall] = {
     val static: C3D = staticC3D(horse)
-    val mt: Seq[MotionTrial] = motionTrials(horse)
+    val mt: Seq[MotionTrial] = dataStore.motionTrials(horse)
     (for {
       m <- mt
     } yield {
-      println(s"Finding footfalls for trial '${m.c3d.source}'")
+      val c3d: C3D = m.c3d.valueOr { t: Throwable => throw t }
+      println(s"Finding footfalls for trial '${c3d.source}'")
       footfallsInTrial(static, m)
     }).flatten
   }
@@ -216,33 +221,8 @@ object PWA {
     }
   }
 
-  def motionTrials(horse: Horse): Seq[MotionTrial] = {
-    def fmatcher(name: String): Boolean = (
-      name.startsWith(s"Horse${horse.id}_") && (name.contains("walk") || name.contains("trot")) &&
-      name.endsWith(".c3d")
-    )
-    val files: Seq[File] = DataStore.deepFileSearch(dataDir, fmatcher)
-    case class FileMotionTrial(file: File) extends MotionTrial {
-      import Direction._
-      import Gait._
-      private val name: String = file.getName
-      def has(subString: String): Boolean = name.contains(subString)
-      val direction: Direction = if (has("left")) CircleLeft else if (has("right")) CircleRight else Straight
-      val gait: Gait = if (has("walk")) Walk else Trot
-      def c3d: C3D = try {
-        C3D.read(file)
-      } catch {
-        case e: Exception => {
-          println(s"problem reading file ${file.getName}")
-          throw e
-        }
-      }
-    }
-    files.map(FileMotionTrial(_))
-  }
-  
   def footfallsInTrial(static: C3D, motion: MotionTrial): Seq[Footfall] = {
-    val c3d = motion.c3d
+    val c3d = motion.c3d.valueOr { t: Throwable => throw t }
     case class FileFootfall(direction: Direction, gait: Gait, plateNumber: Int, 
             forceWeightedPWA: Vec2D, limb: Limb, interval: ContactInterval, c3d: C3D) extends Footfall
     for {

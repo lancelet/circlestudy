@@ -1,8 +1,11 @@
 package core
 
 import scala.collection.immutable._
+import scala.util.{Failure, Success, Try}
 
 import java.io.File
+
+import scalaz.\/
 
 import c3d.C3D
 
@@ -14,7 +17,7 @@ final case class Horse(id: Int)
 trait MotionTrial {
   def direction: Direction
   def gait: Gait
-  def c3d: C3D
+  def c3d: Throwable \/ C3D
 }
 
 /** Direction of a trial: straight, circle right or circle left. */
@@ -41,6 +44,40 @@ object Gait {
  * @param dataDir  top-level data directory
  */
 class DataStore(dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/data")) {
+
+  /**
+   * Finds the motion (non-static) trials for a given horse.
+   *
+   * @param horse horse for which to obtain the motion trials
+   */
+  def motionTrials(horse: Horse): Seq[MotionTrial] = {
+
+    // determines whether a file name matches one of the motion trials for the given horse
+    def fileNameMatchesHorse(name: String): Boolean = {
+      val n = name.toLowerCase
+      n.startsWith(s"horse${horse.id}") &&
+      (n.contains("walk") || n.contains("trot")) &&
+      n.endsWith(".c3d")
+    }
+
+    // constructs a MotionTrial for a particular file
+    def motionTrialFromFile(f: File) = {
+      import Direction._
+      import Gait._
+      def has(s: String) = f.getName.toLowerCase.contains(s)
+      new MotionTrial {
+        val direction: Direction = if      (has("left"))  CircleLeft
+                                   else if (has("right")) CircleRight
+                                   else                   Straight
+        val gait: Gait = if (has("walk")) Walk else Trot
+        def c3d: Throwable \/ C3D = \/.fromTryCatch( C3D.read(f) )
+      }
+    }
+
+    DataStore
+      .deepFileSearch(dataDir, fileNameMatchesHorse)
+      .map(motionTrialFromFile)
+  }
 
 }
 
