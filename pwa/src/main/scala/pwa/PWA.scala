@@ -39,7 +39,7 @@ object PWA {
       // test graphics routines
       val c3do = C3D.read(new File(dataDir, "Horse 3/Horse 3 hard surface circle/Horse3_circle_right_trot_2.c3d"))
       val imgDir = new File(outDir, "renderTest")
-      val static: C3D = staticC3D(Horse(3))
+      val static: C3D = dataStore.staticTrial(Horse(3)).valueOr { t: Throwable => throw t }
       val motionTrial: MotionTrial = new MotionTrial {
         def direction: Direction = Direction.CircleLeft
         def gait: Gait = Gait.Trot
@@ -96,7 +96,7 @@ object PWA {
         new File(outDir, s"trialMovies/${(new File(source)).getName.dropRight(4)}.m4v")
       for {
         horse: Horse <- curHorses
-        static: C3D = staticC3D(horse)
+        static: C3D = dataStore.staticTrial(horse).valueOr { t: Throwable => throw t }
         trial: MotionTrial <- dataStore.motionTrials(horse)
         c3d: C3D = trial.c3d.valueOr { t: Throwable => throw t }
         trialFootfalls = footfallsInTrial(static, trial)
@@ -196,7 +196,7 @@ object PWA {
   }
   
   def footfalls(horse: Horse): Seq[Footfall] = {
-    val static: C3D = staticC3D(horse)
+    val static: C3D = dataStore.staticTrial(horse).valueOr { t: Throwable => throw t }
     val mt: Seq[MotionTrial] = dataStore.motionTrials(horse)
     (for {
       m <- mt
@@ -205,20 +205,6 @@ object PWA {
       println(s"Finding footfalls for trial '${c3d.source}'")
       footfallsInTrial(static, m)
     }).flatten
-  }
-  
-  def staticC3D(horse: Horse): C3D = {
-    def fmatcher(name: String): Boolean = name.startsWith(s"Horse${horse.id}_") && name.contains("static_virtual")
-    val files: Seq[File] = DataStore.deepFileSearch(dataDir, fmatcher)
-    assert(files.length == 1, s"${files.length} static virtual files found for horse ${horse.id}")
-    try {
-      C3D.read(files.head)
-    } catch {
-      case ex: IllegalArgumentException => {
-        println(s"Could not read file ${files.head.getName}")
-        throw ex
-      }
-    }
   }
 
   def footfallsInTrial(static: C3D, motion: MotionTrial): Seq[Footfall] = {

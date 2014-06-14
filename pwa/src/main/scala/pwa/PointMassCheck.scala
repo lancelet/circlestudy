@@ -139,7 +139,7 @@ object PointMassCheck {
   def memoizedCOM(horse: Horse, f: Footfall): Point = {
     synchronized {
       if (!comMap.contains(f)) {
-        val static: C3D = staticC3D(horse)
+        val static: C3D = dataStore.staticTrial(horse).valueOr { t: Throwable => throw t }
         val comPt: Point = new MemoizedPoint(Buchner.bodyCOM(static, f.c3d))
         comMap(f) = comPt
       }

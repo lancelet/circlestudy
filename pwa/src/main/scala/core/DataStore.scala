@@ -3,9 +3,10 @@ package core
 import scala.collection.immutable._
 import scala.util.{Failure, Success, Try}
 
-import java.io.File
+import java.io.{IOException, File}
 
 import scalaz.\/
+import scalaz.Scalaz.ToIdOps  // provides .left and .right implicits
 
 import c3d.C3D
 
@@ -49,6 +50,7 @@ class DataStore(dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/d
    * Finds the motion (non-static) trials for a given horse.
    *
    * @param horse horse for which to obtain the motion trials
+   * @return sequence of motion trials
    */
   def motionTrials(horse: Horse): Seq[MotionTrial] = {
 
@@ -77,6 +79,32 @@ class DataStore(dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/d
     DataStore
       .deepFileSearch(dataDir, fileNameMatchesHorse)
       .map(motionTrialFromFile)
+  }
+
+  /**
+   * Finds the static C3D trial for a horse.
+   *
+   * @param horse horse for which to find the static trial
+   * @return either the static C3D file or the error produced when attempting to read it
+   */
+  def staticTrial(horse: Horse): Throwable \/ C3D = {
+
+    def fileNameMatchesHorse(name: String): Boolean = {
+      val n = name.toLowerCase
+      n.startsWith(s"horse${horse.id}") && name.contains("static_virtual")
+    }
+
+    val files = DataStore.deepFileSearch(dataDir, fileNameMatchesHorse)
+
+    // there should be just one static virtual file; if not then create some exceptions
+    if (files.length > 1) {
+      new IOException(s"more than one static virtual trial found for horse ${horse.id}").left
+    } else if (files.length == 0) {
+      new IOException(s"no static virtual trial found for horse ${horse.id}").left
+    } else {
+      \/.fromTryCatch( C3D.read(files.head) )
+    }
+
   }
 
 }
