@@ -81,6 +81,23 @@ object MarkerSet {
     "HoofMedHeel"
   )
 
+  /**
+   * Finds the peak force that occurs within a given footfall.
+   *
+   * @param footfall footfall
+   * @return peak force
+   */
+  def peakForce(footfall: Footfall): Float = {
+    val sta = PlateUtilsRichC3D(footfall.c3d).ptToFp(footfall.interval.on)
+    val end = PlateUtilsRichC3D(footfall.c3d).ptToFp(footfall.interval.off)
+    footfall.interval.plate
+      .force
+      .iterator
+      .slice(sta, end)
+      .map(_.mag)
+      .max
+  }
+
   implicit class RichC3D(c3d: C3D) {
 
     /**

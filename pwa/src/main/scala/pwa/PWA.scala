@@ -13,6 +13,7 @@ import core._
 import core.DataStore.{ RichC3D => DataStoreRichC3D }
 import core.PlateUtils.{ RichC3D => HoofUtilsRichC3D }
 import core.MarkerSet.{ RichC3D => MarkerSetRichC3D }
+import core.MarkerSet.peakForce
 import pwa.Geom.Circle
 
 object PWA {
@@ -162,17 +163,6 @@ object PWA {
       val plateNumber: Int = c3d.platforms.plates.indexOf(contactInterval.plate) + 1
       FileFootfall(motion.direction, motion.gait, plateNumber, pwa, limb, contactInterval, c3d)
     }
-  }
-
-  def peakForce(footfall: Footfall): Float = {
-    val plate: ForcePlate = footfall.interval.plate
-    val fpRate: Float = plate.rate
-    val ptRate: Float = footfall.c3d.points.rate
-    val rateFactor: Int = (fpRate / ptRate).toInt
-    val on: Int = footfall.interval.on * rateFactor
-    val off: Int = footfall.interval.off * rateFactor
-    val fMax: Float = plate.force.iterator.slice(on, off).map(_.mag).max
-    fMax
   }
 
 }
