@@ -12,6 +12,7 @@ import org.apache.commons.math3.optim.SimpleBounds
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType
 import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.BOBYQAOptimizer
+import c3d.util.transform.RotationMatrix
 
 object Geom {
 
@@ -21,12 +22,28 @@ object Geom {
     def dot(v: Vec2D): Float = x * v.x + y * v.y
     def angle: Float = atan2(y, x).toFloat
     def mag: Float = sqrt(x * x + y * y).toFloat
+    def asVec3D: Vec3D = Vec3D(x, y, 0)
   }
   object Vec2D {
     def fromVec3Dxy(v3: Vec3D): Vec2D = Vec2D(v3.x, v3.y)
     def fromPolar(r: Float, theta: Float): Vec2D = Vec2D((r * cos(theta)).toFloat, (r * sin(theta)).toFloat)
   }
-  
+
+  trait XForm2D {
+    def apply(v: Vec2D): Vec2D
+  }
+
+  final case class Rot2D(angleRad: Double) extends XForm2D {
+    private val c = cos(angleRad)
+    private val s = sin(angleRad)
+    def apply(v: Vec2D): Vec2D = Vec2D((v.x * c - v.y * s).toFloat, (v.x * s + v.y * c).toFloat)
+    def asRotationMatrix: RotationMatrix = {
+      val cf = c.toFloat
+      val sf = s.toFloat
+      RotationMatrix(cf, -sf, 0, sf, cf, 0, 0, 0, 1)
+    }
+  }
+
   final case class Circle(origin: Vec2D, radius: Float)
   
   final case class Line(origin: Vec2D, vec: Vec2D)

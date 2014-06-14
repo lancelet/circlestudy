@@ -5,8 +5,11 @@ import scala.collection.immutable._
 import c3d.{Vec3D, Point, C3D}
 import core.DataStore.{ RichC3D => DataStoreRichC3D }
 import core.PlateUtils.{ RichC3D => PlateUtilsRichC3D, RichPoint }
-import pwa.Geom.{Vec2D, MemoizedPoint, averagePt}
-import c3d.util.transform.VirtualPoint
+import pwa.Geom.{Rot2D, Vec2D, MemoizedPoint, averagePt}
+import c3d.util.transform.{RotationMatrix, XForm, VirtualPoint}
+import scala.math._
+import scala.Some
+import scala.collection.immutable.::
 
 
 /** Limb of the horse */
@@ -46,7 +49,23 @@ trait Footfall {
   }
 }
 
+/**
+ * Instantaneous configuration of the hoof coordinate system within the world coordinate system.
+ */
+trait HoofCoordsInWorld {
+  def originInWorld: Vec3D
+  def xVecInWorld: Vec3D
+  def yVecInWorld: Vec3D
+  def worldToHoof: XForm = {
+    val r = RotationMatrix.fromBasisVectorsXY(xVecInWorld, yVecInWorld)
+    new XForm { def apply(v: Vec3D): Vec3D = r(v - originInWorld) }
+  }
+}
 
+
+/**
+ * Operations specific to the marker set.
+ */
 object MarkerSet {
 
   final val motionHoofMarkerNames = IndexedSeq(
@@ -71,7 +90,9 @@ object MarkerSet {
      *
      * This method should be called on a motion C3D file.
      *
-     * (See hoofPointsForLimb for a description of the points returned.)
+     * Real points are the hoof points defined in each motion trial.  Virtual points are the
+     * points in the static trial, projected into the dynamic trial using the transformations
+     * obtained from the real points.
      *
      * @param static static trial for the horse
      * @return hoof points
@@ -197,6 +218,29 @@ object MarkerSet {
         case _              => None
       }
 
+    }
+
+    implicit class RichVec3D(v: Vec3D) {
+      def projectToZ: Vec3D = Vec3D(v.x, v.y, 0)
+    }
+
+    def hoofCoordsForInterval(static: C3D, interval: ContactInterval): Option[HoofCoordsInWorld] = {
+      limbForContactInterval(static, interval).flatMap { limb: Limb =>
+        val hoofPts = c3d.hoofPointsForLimb(limb, static)
+        def middleAvg(ptName: String): Option[Vec3D] =
+          hoofPts
+            .find(_.name.contains(ptName))
+            .map { p: Point => averagePt(p, interval.percent20, interval.percent80) }
+        for {
+          med <- middleAvg("HoofMedquarter")
+          lat <- middleAvg("HoofLatquarter")
+          dor <- middleAvg("HoofToe")
+        } yield new HoofCoordsInWorld {
+          val originInWorld: Vec3D = ((med + lat) / 2.0f).projectToZ
+          val yVecInWorld: Vec3D = (dor - originInWorld).projectToZ.asUnit
+          val xVecInWorld: Vec3D = Rot2D(math.toRadians(-90)).asRotationMatrix(yVecInWorld)
+        }
+      }
     }
 
   }

@@ -158,47 +158,19 @@ object PWA {
       if (limbOpt.isDefined)
     } yield {
       val limb = limbOpt.get
-      val pwa = forceWeightedPWA(static, c3d, contactInterval, limb)
+      val pwa = forceWeightedPWA(static, c3d, contactInterval)
       val plateNumber: Int = c3d.platforms.plates.indexOf(contactInterval.plate) + 1
       FileFootfall(motion.direction, motion.gait, plateNumber, pwa, limb, contactInterval, c3d)
     }
   }
 
-  def forceWeightedPWA(static: C3D, c3d: C3D, interval: ContactInterval, limb: Limb): Vec2D = {
-    val worldToHoof: XForm = worldToHoofTransform(static, c3d, interval, limb)
+  def forceWeightedPWA(static: C3D, c3d: C3D, interval: ContactInterval): Vec2D = {
+    val worldToHoof: XForm = c3d.hoofCoordsForInterval(static, interval).get.worldToHoof
     val weightedPWA: Vec3D = pwaWeightedDuringContact(c3d, interval)
     val hoofPWA: Vec3D = worldToHoof(weightedPWA)
     Vec2D(hoofPWA.x, hoofPWA.y)
   }
-  
-  def worldToHoofTransform(static: C3D, c3d: C3D, interval: ContactInterval, limb: Limb): XForm = {
-    val hoofPoints: Seq[Point] = c3d.hoofPointsForLimb(limb, static)
-    val medPoint: Point = hoofPoints.find(_.name.contains("HoofMedquarter")).get
-    val latPoint: Point = hoofPoints.find(_.name.contains("HoofLatquarter")).get
-    val dorPoint: Point = hoofPoints.find(_.name.contains("HoofToe")).get
-    val med: Vec3D = averagePt(medPoint, interval.percent20, interval.percent80)
-    val lat: Vec3D = averagePt(latPoint, interval.percent20, interval.percent80)
-    val dor: Vec3D = averagePt(dorPoint, interval.percent20, interval.percent80)
-    val origin: Vec3D = {
-      val o = (med + lat) / 2.0f
-      Vec3D(o.x, o.y, 0)
-    }
-    val yvec: Vec3D = {
-      val y = (dor - origin).asUnit
-      Vec3D(y.x, y.y, 0)
-    }
-    val angle: Double = -90.0 * math.Pi / 180.0
-    val xvec: Vec3D = {
-      val xx: Float = (yvec.x * cos(angle) + yvec.y * sin(-angle)).toFloat
-      val xy: Float = (yvec.x * sin(angle) + yvec.y * cos(angle)).toFloat
-      Vec3D(xx, xy, 0)
-    }
-    val rotMatrix: RotationMatrix = RotationMatrix.fromBasisVectorsXY(xvec, yvec)
-    new XForm {
-      def apply(v: Vec3D): Vec3D = rotMatrix(v - origin)
-    }
-  }
-  
+
   def pwaWeightedDuringContact(c3d: C3D, interval: ContactInterval): Vec3D = {
     val pointRate: Float = c3d.points.rate
     val analogRate: Float = c3d.platforms.rate
