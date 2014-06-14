@@ -13,7 +13,7 @@ import core._
 import core.DataStore.{ RichC3D => DataStoreRichC3D }
 import core.PlateUtils.{ RichC3D => HoofUtilsRichC3D }
 import core.MarkerSet.{ RichC3D => MarkerSetRichC3D }
-import core.MarkerSet.peakForce
+import core.MarkerSet.{ footfallsInTrial, peakForce }
 import pwa.Geom.Circle
 
 object PWA {
@@ -40,7 +40,7 @@ object PWA {
         def gait: Gait = Gait.Trot
         def c3d: C3D = c3do
       }
-      val trialFootfalls = footfallsInTrial(static, motionTrial)
+      val trialFootfalls = footfallsInTrial(static, motionTrial, forceThreshold, minContactDuration)
       val hoofPoints = c3do.hoofPointsForAllLimbs(static)
       val segmentCOMs: Seq[Point] = Buchner.MB.bodies.map(_.point(static, c3do)).map(new MemoizedPoint(_))
       val bodyCOM: Point = new MemoizedPoint(Buchner.bodyCOM(static, c3do))
@@ -91,7 +91,7 @@ object PWA {
         static: C3D = dataStore.staticTrial(horse).valueOr { t: Throwable => throw t }
         trial: MotionTrial <- dataStore.motionTrials(horse)
         c3d: C3D = trial.c3d.valueOr { t: Throwable => throw t }
-        trialFootfalls = footfallsInTrial(static, trial)
+        trialFootfalls = footfallsInTrial(static, trial, forceThreshold, minContactDuration)
         hoofPoints = c3d.hoofPointsForAllLimbs(static)
         segmentCOMs: Seq[Point] = Buchner.MB.bodies.map(_.point(static, c3d)).map(new MemoizedPoint(_))
         bodyCOM: Point = new MemoizedPoint(Buchner.bodyCOM(static, c3d))
@@ -145,24 +145,8 @@ object PWA {
     } yield {
       val c3d: C3D = m.c3d.valueOr { t: Throwable => throw t }
       println(s"Finding footfalls for trial '${c3d.source}'")
-      footfallsInTrial(static, m)
+      footfallsInTrial(static, m, forceThreshold, minContactDuration)
     }).flatten
-  }
-
-  def footfallsInTrial(static: C3D, motion: MotionTrial): Seq[Footfall] = {
-    val c3d = motion.c3d.valueOr { t: Throwable => throw t }
-    case class FileFootfall(direction: Direction, gait: Gait, plateNumber: Int, 
-            forceWeightedPWA: Vec2D, limb: Limb, interval: ContactInterval, c3d: C3D) extends Footfall
-    for {
-      contactInterval <- c3d.contactIntervals(forceThreshold, minContactDuration)
-      limbOpt = c3d.limbForContactInterval(static, contactInterval)
-      if (limbOpt.isDefined)
-    } yield {
-      val limb = limbOpt.get
-      val pwa = c3d.forceWeightedPWAInHoofCoords(static, contactInterval)
-      val plateNumber: Int = c3d.platforms.plates.indexOf(contactInterval.plate) + 1
-      FileFootfall(motion.direction, motion.gait, plateNumber, pwa, limb, contactInterval, c3d)
-    }
   }
 
 }

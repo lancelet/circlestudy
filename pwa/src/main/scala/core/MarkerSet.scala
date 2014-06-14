@@ -98,6 +98,34 @@ object MarkerSet {
       .max
   }
 
+  /**
+   * Finds all the footfalls in a trial.
+   *
+   * @param static static trial
+   * @param motion motion trial
+   * @param forceThreshold force threshold for contact detection
+   * @param minContactDuration minimum allowed duration of contact periods
+   * @return detected footfalls
+   */
+  def footfallsInTrial(
+    static: C3D, motion: MotionTrial, forceThreshold: Float, minContactDuration: Float
+  ): Seq[Footfall] = {
+    val c3do = motion.c3d.valueOr { t: Throwable => throw t }  // currently, throw exceptions
+    for {
+      intervalo <- PlateUtilsRichC3D(c3do).contactIntervals(forceThreshold, minContactDuration)
+      limbOpt   =  c3do.limbForContactInterval(static, intervalo)
+      if limbOpt.isDefined
+    } yield new Footfall {
+      val c3d: C3D = c3do
+      val plateNumber: Int = c3do.platforms.plates.indexOf(intervalo.plate) + 1
+      val gait: Gait = motion.gait
+      val forceWeightedPWA: Vec2D = c3do.forceWeightedPWAInHoofCoords(static, intervalo)
+      val interval: ContactInterval = intervalo
+      val direction: Direction = motion.direction
+      val limb: Limb = limbOpt.get
+    }
+  }
+
   implicit class RichC3D(c3d: C3D) {
 
     /**
