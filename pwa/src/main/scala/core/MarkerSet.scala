@@ -4,8 +4,46 @@ import scala.collection.immutable._
 
 import c3d.{Point, C3D}
 import core.DataStore.{ RichC3D => DataStoreRichC3D }
-import pwa.Geom.{MemoizedPoint, averagePt}
+import pwa.Geom.{Vec2D, MemoizedPoint, averagePt}
 import c3d.util.transform.VirtualPoint
+
+
+/** Limb of the horse */
+sealed trait Limb {
+  import Limb._
+  def isForelimb: Boolean = (this == LF) || (this == RF)
+}
+object Limb {
+  object LF extends Limb { override def toString = "LF" }
+  object RF extends Limb { override def toString = "RF" }
+  object LH extends Limb { override def toString = "LH" }
+  object RH extends Limb { override def toString = "RH" }
+  def fromString(s: String): Limb = s.toUpperCase match {
+    case "LF" => LF
+    case "LH" => LH
+    case "RF" => RF
+    case "RH" => RH
+    case _ => throw new IllegalArgumentException(s"limb '$s' is invalid")
+  }
+}
+
+/** A single footfall of a horse. */
+trait Footfall {
+  import Direction._
+  import Limb._
+  def direction: Direction
+  def gait: Gait
+  def forceWeightedPWA: Vec2D
+  def limb: Limb
+  def interval: ContactInterval
+  def plateNumber: Int
+  def c3d: C3D
+  def isOuterLimb: Boolean = direction match {
+    case CircleLeft  => (limb == RF) || (limb == RH)
+    case CircleRight => (limb == LF) || (limb == LH)
+    case Straight    => false
+  }
+}
 
 
 object MarkerSet {

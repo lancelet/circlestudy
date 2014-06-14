@@ -11,7 +11,7 @@ import c3d.util.transform.{RotationMatrix, VirtualPoint, XForm}
 import Geom._
 import core._
 import core.DataStore.{ RichC3D => DataStoreRichC3D }
-import core.HoofUtils.{ RichC3D => HoofUtilsRichC3D }
+import core.PlateUtils.{ RichC3D => HoofUtilsRichC3D }
 import core.MarkerSet.{ RichC3D => MarkerSetRichC3D }
 import scala.Some
 import pwa.Geom.Circle
