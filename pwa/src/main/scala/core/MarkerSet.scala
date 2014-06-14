@@ -2,8 +2,9 @@ package core
 
 import scala.collection.immutable._
 
-import c3d.{Point, C3D}
+import c3d.{Vec3D, Point, C3D}
 import core.DataStore.{ RichC3D => DataStoreRichC3D }
+import core.PlateUtils.{ RichC3D => PlateUtilsRichC3D, RichPoint }
 import pwa.Geom.{Vec2D, MemoizedPoint, averagePt}
 import c3d.util.transform.VirtualPoint
 
@@ -147,8 +148,60 @@ object MarkerSet {
         .map { new MemoizedPoint(_) }
     }
 
+    /**
+     * Optionally return the limb that is over the plate for an entire contact interval.
+     *
+     * This method should be called on a motion C3D trial.
+     *
+     * @param static static trial for the horse
+     * @param interval contact interval
+     * @return optional limb
+     */
+    def limbForContactInterval(static: C3D, interval: ContactInterval): Option[Limb] = {
+      c3d.closestLimbAtImpact(interval).flatMap { closest: Limb =>
+        val hoofMarkers: Seq[Point] = c3d.hoofPointsForLimb(closest, static)
+        if (hoofMarkers.forall(_.withinPlateForWholeInterval(interval))) Some(closest) else None
+      }
+    }
+
+    /**
+     * Finds the closest limb to a plate at impact for a given contact interval.
+     *
+     * The dorsal markers on the hooves are used for this comparison.
+     *
+     * @param interval contact interval
+     * @return closest limb
+     */
+    def closestLimbAtImpact(interval: ContactInterval): Option[Limb] = {
+
+      val onPt: Vec3D = interval.plate.pwa(PlateUtilsRichC3D(c3d).ptToFp(interval.on))
+
+      def distanceAtImpact(p: Point): Option[Float] = p(interval.on) map { pt: Vec3D =>
+        (pt - onPt).mag
+      }
+
+      val limbMarkerNames: List[(Limb, String)] = List(
+        Limb.RF -> "RFHoofDorsal",
+        Limb.LF -> "LFHoofDorsal",
+        Limb.RH -> "RHHoofDorsal",
+        Limb.LH -> "LHHoofDorsal"
+      )
+      val minLimb: List[(Limb, Float)] = limbMarkerNames
+        .map    { case (limb, name)     => limb -> DataStoreRichC3D(c3d).getCSPoint(name).get }
+        .map    { case (limb, point)    => limb -> distanceAtImpact(point)                    }
+        .filter { case (_   , opt)      => opt.isDefined                                      }
+        .map    { case (limb, distance) => limb -> distance.get                               }
+        .sortBy { case (limb, distance) => distance                                           }
+      minLimb match {
+        case (limb, _) :: _ => Some(limb)
+        case _              => None
+      }
+
+    }
+
   }
 
+  /** Suffixes the name of a hoof marker to a limb identifier. */
   private def nameOfHoofMarkerOnLimb(limb: Limb, suffix: String) = s"${limb.toString}${suffix}"
 
 }

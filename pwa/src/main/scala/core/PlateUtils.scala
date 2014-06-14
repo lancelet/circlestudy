@@ -2,7 +2,8 @@ package core
 
 import scala.collection.immutable._
 
-import c3d.{ForcePlate, C3D}
+import c3d.{Vec3D, ForcePlate, C3D, Point}
+import pwa.Geom.{Vec2D, Quadrilateral}
 
 
 /**
@@ -22,6 +23,45 @@ case class ContactInterval (on: Int, off: Int, plate: ForcePlate) {
 
 
 object PlateUtils {
+
+  implicit class RichPoint(pt: Point) {
+
+    /**
+     * Checks whether a point is within the z-projection of a plate for an entire contact interval.
+     *
+     * @param interval interval to check
+     * @return true if the point lies within the projection of the plate boundary
+     */
+    def withinPlateForWholeInterval(interval: ContactInterval): Boolean =
+      (interval.on until interval.off).forall(interval.plate.withinZProjection(pt, _))
+
+  }
+
+  implicit class RichPlate(plate: ForcePlate) {
+
+    /**
+     * For a force plate, returns a `Quadrilateral` which represents its boundary
+     *
+     * @return quadrilateral boundary of the force plate
+     */
+    def quadForPlateZProjection: Quadrilateral = {
+      val ps = plate.corners.map { c: Vec3D => Vec2D(c.x, c.y) }
+      Quadrilateral(ps(0), ps(1), ps(2), ps(3))
+    }
+
+    /**
+     * Checks if a point lies within the z-projection of a force plate boundary at a given index.
+     *
+     * @param p point to check
+     * @param ptIndex index at which to check the point's position
+     * @return true if the point lies within the z-projection of the plate boundary at the sample
+     */
+    def withinZProjection(p: Point, ptIndex: Int): Boolean =
+      p(ptIndex)
+        .map(Vec2D.fromVec3Dxy)
+        .fold(false)(quadForPlateZProjection.within)
+
+  }
 
   implicit class RichC3D(c3d: C3D) {
 
@@ -43,6 +83,14 @@ object PlateUtils {
      * @return sample converted
      */
     def fpToPt(s: Int): Int = (s.toDouble / fpToPtFactor.toDouble).toInt
+
+    /**
+     * Converts a point sample to a force plate sample.
+     *
+     * @param s sample to convert
+     * @return sample converted
+     */
+    def ptToFp(s: Int): Int = (s.toDouble * fpToPtFactor.toDouble).toInt
 
     /**
      * Finds all contact intervals that occur on a force plate in a given C3D trial.

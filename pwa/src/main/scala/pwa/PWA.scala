@@ -6,14 +6,13 @@ import scala.collection.immutable._
 import java.io.{File, FileWriter, Writer}
 
 import c3d._
-import c3d.util.transform.{RotationMatrix, VirtualPoint, XForm}
+import c3d.util.transform.{RotationMatrix, XForm}
 
 import Geom._
 import core._
 import core.DataStore.{ RichC3D => DataStoreRichC3D }
 import core.PlateUtils.{ RichC3D => HoofUtilsRichC3D }
 import core.MarkerSet.{ RichC3D => MarkerSetRichC3D }
-import scala.Some
 import pwa.Geom.Circle
 
 object PWA {
@@ -155,7 +154,7 @@ object PWA {
             forceWeightedPWA: Vec2D, limb: Limb, interval: ContactInterval, c3d: C3D) extends Footfall
     for {
       contactInterval <- c3d.contactIntervals(forceThreshold, minContactDuration)
-      limbOpt = limbForContactInterval(static, c3d, contactInterval)
+      limbOpt = c3d.limbForContactInterval(static, contactInterval)
       if (limbOpt.isDefined)
     } yield {
       val limb = limbOpt.get
@@ -165,18 +164,6 @@ object PWA {
     }
   }
 
-  def limbForContactInterval(static: C3D, c3d: C3D, interval: ContactInterval): Option[Limb] = {
-    // find closest limb
-    val closest: Limb = closestLimb(c3d, interval)
-    // all markers for closest limb must be within the force plate
-    val markers: Seq[Point] = c3d.hoofPointsForLimb(closest, static)
-    if (markers.forall(pointWithinPlateForWholeInterval(_, interval))) {
-      Some(closest)
-    } else {
-      None
-    }
-  }
-  
   def forceWeightedPWA(static: C3D, c3d: C3D, interval: ContactInterval, limb: Limb): Vec2D = {
     val worldToHoof: XForm = worldToHoofTransform(static, c3d, interval, limb)
     val weightedPWA: Vec3D = pwaWeightedDuringContact(c3d, interval)
@@ -239,69 +226,6 @@ object PWA {
     }
     assert(weightSum > 0.0)
     Vec3D((x / weightSum).toFloat, (y / weightSum).toFloat, (z / weightSum).toFloat)
-  }
-      
-  def pointWithinPlateForWholeInterval(point: Point, interval: ContactInterval): Boolean = {
-    val plate = interval.plate
-    var curIndex = interval.on
-    while (curIndex < interval.off) {
-      if (pointWithinPlate(point, curIndex, plate) == false) return false
-      curIndex = curIndex + 1
-    }
-    return true
-  }
-  
-  def pointWithinPlate(point: Point, ptIndex: Int, plate: ForcePlate): Boolean = {
-    val optPos: Option[Vec3D] = point(ptIndex)
-    if (optPos.isDefined) {
-      val pos: Vec3D = optPos.get
-      val testPt: Vec2D = Vec2D(pos.x, pos.y)
-      val c0: Vec2D = Vec2D(plate.corners(0).x, plate.corners(0).y)
-      val c1: Vec2D = Vec2D(plate.corners(1).x, plate.corners(1).y)
-      val c2: Vec2D = Vec2D(plate.corners(2).x, plate.corners(2).y)
-      val c3: Vec2D = Vec2D(plate.corners(3).x, plate.corners(3).y)
-      ptWithinTriangle(c0, c1, c2, testPt) || ptWithinTriangle(c0, c2, c3, testPt)
-    } else {
-      false
-    }
-  }
-  
-  def ptWithinTriangle(cornerA: Vec2D, cornerB: Vec2D, cornerC: Vec2D, testPt: Vec2D): Boolean = {
-    val p  = testPt
-    val p1 = cornerA
-    val p2 = cornerB
-    val p3 = cornerC
-    val det: Float = (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y)
-    val alpha: Float = ((p2.y - p3.y) * (p.x - p3.x) + (p3.x - p2.x) * (p.y - p3.y)) / det
-    val beta: Float  = ((p3.y - p1.y) * (p.x - p3.x) + (p1.x - p3.x) * (p.y - p3.y)) / det
-    val gamma: Float = 1.0f - alpha - beta
-    (alpha >= 0) && (beta >= 0) && (gamma >= 0)
-  }
-    
-  def closestLimb(c3d: C3D, interval: ContactInterval): Limb = {
-    val fpRate: Float = c3d.platforms.rate
-    val ptRate: Float = c3d.points.rate
-    val sf: Int = (fpRate / ptRate).toInt
-    val onpt: Vec3D = interval.plate.pwa(sf * interval.on)
-    val toeRF: Point = c3d.getCSPoint("RFHoofDorsal").get
-    val toeLF: Point = c3d.getCSPoint("LFHoofDorsal").get
-    val toeRH: Point = c3d.getCSPoint("RHHoofDorsal").get
-    val toeLH: Point = c3d.getCSPoint("LHHoofDorsal").get
-    val distant: Vec3D = Vec3D(10000f, 10000f, 10000f)
-    val dRF: Float = (toeRF(interval.on).getOrElse(distant) - onpt).mag
-    val dLF: Float = (toeLF(interval.on).getOrElse(distant) - onpt).mag
-    val dRH: Float = (toeRH(interval.on).getOrElse(distant) - onpt).mag
-    val dLH: Float = (toeLH(interval.on).getOrElse(distant) - onpt).mag
-    import Limb._
-    if (dRF <= dLF && dRF <= dRH && dRF <= dLH) {
-      RF
-    } else if (dLF <= dRH && dLF <= dLH) {
-      LF
-    } else if (dRH <= dLH) {
-      RH
-    } else {
-      LH
-    }
   }
 
   def t6Circle(c3d: C3D): Circle = {

@@ -156,5 +156,38 @@ object Geom {
    * @return average coordinates
    */
   def averagePt(p: Point): Vec3D = averagePt(p, 0, p.length - 1)
-  
+
+  /**
+   * Triangle class that can test whether points are within its periphery.
+   *
+   * @param a corner of the triangle
+   * @param b corner of the triangle
+   * @param c corner of the triangle
+   */
+  case class Triangle(a: Vec2D, b: Vec2D, c: Vec2D) {
+    private val det: Float = (a.x - c.x) * (b.y - c.y) - (b.x - c.x) * (a.y - c.y)
+    def within(p: Vec2D): Boolean = {
+      val alpha = ((b.y - c.y) * (p.x - c.x) + (c.x - b.x) * (p.y - c.y)) / det
+      val beta  = ((c.y - a.y) * (p.x - c.x) + (a.x - c.x) * (p.y - c.y)) / det
+      val gamma = 1.0f - alpha - beta
+      (alpha >= 0) && (beta >= 0) && (gamma >= 0)
+    }
+  }
+
+  /**
+   * Quadrilateral class that can test whether points are within its periphery.
+   *
+   * The points should be defined in a clockwise or counter-clockwise order around the periphery.
+   *
+   * @param a corner of quad
+   * @param b corner of quad
+   * @param c corner of quad
+   * @param d corner of quad
+   */
+  case class Quadrilateral(a: Vec2D, b: Vec2D, c: Vec2D, d: Vec2D) {
+    private val tri1 = Triangle(a, b, c)
+    private val tri2 = Triangle(c, d, a)
+    def within(p: Vec2D): Boolean = tri1.within(p) || tri2.within(p)
+  }
+
 }
