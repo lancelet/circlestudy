@@ -10,6 +10,7 @@ import c3d.util.transform.{RotationMatrix, VirtualPoint, XForm}
 
 import Geom._
 import core._
+import core.DataStore.RichC3D
 import scala.Some
 import pwa.Geom.Circle
 
@@ -158,25 +159,6 @@ object PWA {
     }
   }
 
-  def getPoint(c3d: C3D, name: String): Point = {
-    // mapping of unusual names encountered in the trials (spelling mistakes)
-    val oddNameMapping: Map[String, String] = Map (
-      ("RFHoofLatTopfffff", "RFHoofLatTop"),
-      ("RHHeeld", "RHHeel")
-    )
-    val actualName: String = oddNameMapping.getOrElse(name.trim, name.trim)
-    c3d.points.getPointByName(actualName).getOrElse(  // first try fetching by a normal name
-      c3d.points.getPointByDescription(actualName).getOrElse(  // then try fetching by a description
-        c3d.points.points.find(_.name.contains(actualName)).getOrElse(  // then partial name
-          c3d.points.points.find(_.description.contains(actualName)).getOrElse {  // then partial description
-            val err = s"could not find point $actualName in C3D file ${c3d.source}"
-            throw new NoSuchElementException(err)
-          }
-        )
-      )
-    )
-  }
-  
   def footfalls(horse: Horse): Seq[Footfall] = {
     val static: C3D = dataStore.staticTrial(horse).valueOr { t: Throwable => throw t }
     val mt: Seq[MotionTrial] = dataStore.motionTrials(horse)
@@ -347,10 +329,10 @@ object PWA {
     val ptRate: Float = c3d.points.rate
     val sf: Int = (fpRate / ptRate).toInt
     val onpt: Vec3D = interval.plate.pwa(sf * interval.on)
-    val toeRF: Point = getPoint(c3d, "RFHoofDorsal")
-    val toeLF: Point = getPoint(c3d, "LFHoofDorsal")
-    val toeRH: Point = getPoint(c3d, "RHHoofDorsal")
-    val toeLH: Point = getPoint(c3d, "LHHoofDorsal")
+    val toeRF: Point = c3d.getCSPoint("RFHoofDorsal").get
+    val toeLF: Point = c3d.getCSPoint("LFHoofDorsal").get
+    val toeRH: Point = c3d.getCSPoint("RHHoofDorsal").get
+    val toeLH: Point = c3d.getCSPoint("LHHoofDorsal").get
     val distant: Vec3D = Vec3D(10000f, 10000f, 10000f)
     val dRF: Float = (toeRF(interval.on).getOrElse(distant) - onpt).mag
     val dLF: Float = (toeLF(interval.on).getOrElse(distant) - onpt).mag
@@ -378,7 +360,7 @@ object PWA {
     val ls = limb.toString
     val baseNames: IndexedSeq[String] = IndexedSeq("HoofLatBottom", "Heel", "HoofLatTop", "HoofDorsal")
     val names: IndexedSeq[String] = baseNames.map(bn => s"$ls$bn")
-    for (name <- names) yield getPoint(c3d, name)
+    for (name <- names) yield c3d.getCSPoint(name).get
   }
   
   def virtualHoofPointsForLimb(static: C3D, c3d: C3D, limb: Limb, motionPoints: IndexedSeq[Point]): Seq[Point] = {
@@ -387,11 +369,11 @@ object PWA {
     val names: Seq[String] = baseNames.map(bn => s"$ls$bn")
     val staticRefs: IndexedSeq[Vec3D] = for {
       name <- motionPoints.map(_.description)
-      staticPt: Point = getPoint(static, name)
+      staticPt: Point = static.getCSPoint(name).get
     } yield averagePt(staticPt)
     for {
       name <- names
-      staticPt: Point = getPoint(static, name)
+      staticPt: Point = static.getCSPoint(name).get
     } yield (new MemoizedPoint(VirtualPoint(name, "", averagePt(staticPt), staticRefs, motionPoints)))
   }
   
@@ -418,7 +400,7 @@ object PWA {
   def averagePt(p: Point): Vec3D = averagePtOverRange(p, 0, p.length - 1)
   
   def t6Circle(c3d: C3D): Circle = {
-    val t6: Point = getPoint(c3d, "T6")
+    val t6: Point = c3d.getCSPoint("T6").get
     val firstIndex: Int = t6.indexWhere(_.isDefined)
     val lastIndex:  Int = t6.lastIndexWhere(_.isDefined)
     val midIndex:   Int = t6.indexWhere(_.isDefined, (firstIndex + lastIndex) / 2)
@@ -432,7 +414,7 @@ object PWA {
     if (direction.isCircle) circleTrialT6Speed(c3d) else straightTrialT6Speed(c3d)
   
   def straightTrialT6Speed(c3d: C3D): Float = {
-    val t6: Point = getPoint(c3d, "T6")
+    val t6: Point = c3d.getCSPoint("T6").get
     val firstIndex: Int = t6.indexWhere(_.isDefined)
     val lastIndex:  Int = t6.lastIndexWhere(_.isDefined)
     val deltaT: Float = (lastIndex - firstIndex) / c3d.points.rate
@@ -442,7 +424,7 @@ object PWA {
   
   def circleTrialT6Speed(c3d: C3D): Float = {
     val circle: Circle = t6Circle(c3d)
-    val t6: Point = getPoint(c3d, "T6")
+    val t6: Point = c3d.getCSPoint("T6").get
     val firstIndex: Int = t6.indexWhere(_.isDefined)
     val lastIndex:  Int = t6.lastIndexWhere(_.isDefined)
     val p0: Vec3D = t6(firstIndex).get

@@ -9,6 +9,7 @@ import scalaz.\/
 import scalaz.Scalaz.ToIdOps  // provides .left and .right implicits
 
 import c3d.C3D
+import c3d.Point
 
 
 /** Horse. */
@@ -155,6 +156,30 @@ object DataStore {
     matchingFiles ++ subdirs.flatMap(deepFileSearch(_, namePredicate))
   }
 
+  implicit class RichC3D(c3d: C3D) {
+
+    /**
+     * Fetches a point from a C3D file, handling weird names.
+     *
+     * @param name name of the point to extract
+     * @return either the point to be fetched or a Throwable containing an error
+     */
+    def getCSPoint(name: String): Option[Point] = {
+
+      val oddNames: Map[String, String] = Map(
+        "RFHoofLatTopfffff" -> "RFHoofLatTop",
+        "RHHeeld" -> "RHHeel"
+      )
+      val n = oddNames.getOrElse(name.trim, name.trim)
+
+      val ps = c3d.points
+      ps.getPointByName(n) // try fetching a normal name
+        .orElse(ps.getPointByDescription(n)) //  then a description
+        .orElse(ps.points.find(_.name.contains(n))) //  then a partial name
+        .orElse(ps.points.find(_.description.contains(n))) //  then a partial description
+
+    }
+
+  }
+
 }
-
-
