@@ -123,7 +123,7 @@ object PWA {
         isForelimb = if (footfall.limb.isForelimb) "true" else "false"
       } {
         val inoutPos: Float = if (direction == CircleLeft) x else if (direction == CircleRight) -x else x
-        val radius: Float = if (direction.isCircle) t6Circle(footfall.c3d).radius else -1.0f
+        val radius: Float = if (direction.isCircle) footfall.c3d.t6CircleThrough3Points.radius else -1.0f
         val speed: Float = trialT6Speed(footfall.c3d, direction) / 1000.0f // m/s
         val fPeak: Float = peakForce(footfall)
         pwaTable.write(s"$fileName,$horseId,$direction,$isCircle,$gait,$limb,$isForelimb,$plateNumber,$x,$y,")
@@ -200,17 +200,6 @@ object PWA {
     Vec3D((x / weightSum).toFloat, (y / weightSum).toFloat, (z / weightSum).toFloat)
   }
 
-  def t6Circle(c3d: C3D): Circle = {
-    val t6: Point = c3d.getCSPoint("T6").get
-    val firstIndex: Int = t6.indexWhere(_.isDefined)
-    val lastIndex:  Int = t6.lastIndexWhere(_.isDefined)
-    val midIndex:   Int = t6.indexWhere(_.isDefined, (firstIndex + lastIndex) / 2)
-    val p1: Vec3D = t6(firstIndex).get
-    val p2: Vec3D = t6(midIndex).get
-    val p3: Vec3D = t6(lastIndex).get
-    circleThrough3Points(Vec2D(p1.x, p1.y), Vec2D(p2.x, p2.x), Vec2D(p3.x, p3.y))
-  }
-        
   def trialT6Speed(c3d: C3D, direction: Direction): Float = 
     if (direction.isCircle) circleTrialT6Speed(c3d) else straightTrialT6Speed(c3d)
   
@@ -224,7 +213,7 @@ object PWA {
   }
   
   def circleTrialT6Speed(c3d: C3D): Float = {
-    val circle: Circle = t6Circle(c3d)
+    val circle: Circle = c3d.t6CircleThrough3Points
     val t6: Point = c3d.getCSPoint("T6").get
     val firstIndex: Int = t6.indexWhere(_.isDefined)
     val lastIndex:  Int = t6.lastIndexWhere(_.isDefined)

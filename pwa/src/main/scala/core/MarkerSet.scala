@@ -5,8 +5,11 @@ import scala.collection.immutable._
 import c3d.{Vec3D, Point, C3D}
 import core.DataStore.{ RichC3D => DataStoreRichC3D }
 import core.PlateUtils.{ RichC3D => PlateUtilsRichC3D, RichPoint }
-import pwa.Geom.{Rot2D, Vec2D, MemoizedPoint, averagePt}
+import pwa.Geom._
 import c3d.util.transform.{RotationMatrix, XForm, VirtualPoint}
+import pwa.Geom.Rot2D
+import scala.Some
+import scala.collection.immutable.::
 
 
 /** Limb of the horse */
@@ -251,6 +254,28 @@ object MarkerSet {
           val xVecInWorld: Vec3D   = Rot2D(math.toRadians(-90)).asRotationMatrix(yVecInWorld)
         }
       }
+    }
+
+    /**
+     * Finds a circle through the path of T6.
+     *
+     * The circle is found from 3 points.  These are the first and last positions at which the T6
+     * marker is defined, and a point close to the middle where the marker is also defined.
+     *
+     * @return circle
+     */
+    def t6CircleThrough3Points: Circle = {
+      val t6 = DataStoreRichC3D(c3d).getCSPoint("T6").get
+
+      val sta = t6.indexWhere(_.isDefined)
+      val end = t6.lastIndexWhere(_.isDefined)
+      val mid = t6.indexWhere(_.isDefined, (sta + end) / 2)
+
+      circleThrough3Points(
+        Vec2D.fromVec3Dxy(t6(sta).get),
+        Vec2D.fromVec3Dxy(t6(mid).get),
+        Vec2D.fromVec3Dxy(t6(end).get)
+      )
     }
 
   }
