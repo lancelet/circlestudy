@@ -13,7 +13,7 @@ import core._
 import core.DataStore.{ RichC3D => DataStoreRichC3D }
 import core.PlateUtils.{ RichC3D => HoofUtilsRichC3D }
 import core.MarkerSet.{ RichC3D => MarkerSetRichC3D }
-import core.MarkerSet.{ footfallsInTrial, peakForce }
+import core.MarkerSet.{ footfalls, footfallsInTrial, peakForce }
 import pwa.Geom.Circle
 
 object PWA {
@@ -58,7 +58,9 @@ object PWA {
       }
       for {
         horse <- curHorses
-        footfallsByC3DFile: Map[String,Seq[Footfall]] = footfalls(horse).groupBy(_.c3d.source)
+        footfallsByC3DFile: Map[String,Seq[Footfall]] = footfalls(
+            dataStore, horse, forceThreshold, minContactDuration
+          ).valueOr(throw _).groupBy(_.c3d.source)
         c3dFileName <- footfallsByC3DFile.keys
         csvFileName = csvFileNameFromC3DFileName(c3dFileName)
         footfallsForCurrentC3DFile: Seq[Footfall] = footfallsByC3DFile(c3dFileName)
@@ -110,7 +112,7 @@ object PWA {
       // iterate over all horses, writing footfall data
       for {
         horse <- dataStore.horses(if (OnlyOneHorse) Seq(Horse(3)) else Seq.empty)
-        footfall <- footfalls(horse)
+        footfall <- footfalls(dataStore, horse, forceThreshold, minContactDuration).valueOr(throw _)
         fileName = footfall.c3d.source
         horseId = horse.id
         direction = footfall.direction
@@ -135,17 +137,6 @@ object PWA {
       // close the table of footfalls
       pwaTable.close()
     }
-  }
-
-  def footfalls(horse: Horse): Seq[Footfall] = {
-    val static: C3D = dataStore.staticTrial(horse).valueOr { t: Throwable => throw t }
-    val mt: Seq[MotionTrial] = dataStore.motionTrials(horse).valueOr { t: Throwable => throw t }
-    (for {
-      m <- mt
-    } yield {
-      println(s"Finding footfalls for trial '${m.c3d.source}'")
-      footfallsInTrial(static, m, forceThreshold, minContactDuration)
-    }).flatten
   }
 
 }

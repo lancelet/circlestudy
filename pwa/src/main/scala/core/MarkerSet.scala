@@ -134,8 +134,15 @@ object MarkerSet {
    * @param horse horse for which to find footfalls
    * @return sequence of found footfalls
    */
-  def footfalls(dataStore: DataStore, horse: Horse): Throwable \/ Seq[Footfall] = {
-    ???
+  def footfalls(
+    dataStore: DataStore, horse: Horse, forceThreshold: Float, minContactDuration: Float
+  ): Throwable \/ Seq[Footfall] = {
+    (for {
+      static       <- dataStore.staticTrial(horse)
+      motionTrials <- dataStore.motionTrials(horse)
+    } yield for (motionTrial <- motionTrials) yield {
+      footfallsInTrial(static, motionTrial, forceThreshold, minContactDuration)
+    }).map { _.flatten }
   }
 
   implicit class RichC3D(c3d: C3D) {

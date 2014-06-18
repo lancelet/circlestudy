@@ -4,13 +4,18 @@ import scala.annotation.tailrec
 import scala.collection.immutable._
 import scala.collection.mutable.{Map => MMap}
 import scala.io.Source
+
 import math.{abs, Pi}
-import c3d._
+
 import java.io.File
 import java.io.FileWriter
 import java.io.Writer
 
+import c3d._
+
 import core._
+import core.MarkerSet.footfalls
+
 
 object PointMassCheck {
 
@@ -119,7 +124,10 @@ object PointMassCheck {
       val comPt = memoizedCOM(horse, f)
       (Seq.range(f.interval.on, f.interval.off+1)).forall(comPt(_).isDefined)
     }
-    footfalls(horse).filter(_.direction.isCircle).filter(_.gait == Gait.Trot).filter(comIsDefined(_))
+    footfalls(dataStore, horse, forceThreshold, minContactDuration)
+      .valueOr(throw _)
+      .filter(_.direction.isCircle)
+      .filter(_.gait == Gait.Trot).filter(comIsDefined(_))
   }
 
   // Memoize COM circles so that they don't need to be re-calculated
