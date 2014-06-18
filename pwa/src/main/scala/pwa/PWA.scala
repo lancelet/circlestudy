@@ -1,20 +1,15 @@
 package pwa
 
-import scala.math._
 import scala.collection.immutable._
 
 import java.io.{File, FileWriter, Writer}
 
 import c3d._
-import c3d.util.transform.{RotationMatrix, XForm}
 
 import Geom._
 import core._
-import core.DataStore.{ RichC3D => DataStoreRichC3D }
-import core.PlateUtils.{ RichC3D => HoofUtilsRichC3D }
 import core.MarkerSet.{ RichC3D => MarkerSetRichC3D }
 import core.MarkerSet.{ footfalls, footfallsInTrial, peakForce }
-import pwa.Geom.Circle
 
 object PWA {
   
