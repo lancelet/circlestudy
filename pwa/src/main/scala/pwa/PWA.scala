@@ -89,8 +89,8 @@ object PWA {
       for {
         horse: Horse <- curHorses
         static: C3D = dataStore.staticTrial(horse).valueOr { t: Throwable => throw t }
-        trial: MotionTrial <- dataStore.motionTrials(horse)
-        c3d: C3D = trial.c3d.valueOr { t: Throwable => throw t }
+        trial: MotionTrial <- dataStore.motionTrials(horse).valueOr { t: Throwable => throw t }
+        c3d: C3D = trial.c3d
         trialFootfalls = footfallsInTrial(static, trial, forceThreshold, minContactDuration)
         hoofPoints = c3d.hoofPointsForAllLimbs(static)
         segmentCOMs: Seq[Point] = Buchner.MB.bodies.map(_.point(static, c3d)).map(new MemoizedPoint(_))
@@ -139,12 +139,11 @@ object PWA {
 
   def footfalls(horse: Horse): Seq[Footfall] = {
     val static: C3D = dataStore.staticTrial(horse).valueOr { t: Throwable => throw t }
-    val mt: Seq[MotionTrial] = dataStore.motionTrials(horse)
+    val mt: Seq[MotionTrial] = dataStore.motionTrials(horse).valueOr { t: Throwable => throw t }
     (for {
       m <- mt
     } yield {
-      val c3d: C3D = m.c3d.valueOr { t: Throwable => throw t }
-      println(s"Finding footfalls for trial '${c3d.source}'")
+      println(s"Finding footfalls for trial '${m.c3d.source}'")
       footfallsInTrial(static, m, forceThreshold, minContactDuration)
     }).flatten
   }

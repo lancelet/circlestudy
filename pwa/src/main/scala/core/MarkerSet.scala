@@ -8,6 +8,7 @@ import core.PlateUtils.{ RichC3D => PlateUtilsRichC3D, RichPoint }
 import pwa.Geom._
 import c3d.util.transform.{RotationMatrix, XForm, VirtualPoint}
 import pwa.Geom.Rot2D
+import scalaz.\/
 
 
 /** Limb of the horse */
@@ -110,7 +111,7 @@ object MarkerSet {
   def footfallsInTrial(
     static: C3D, motion: MotionTrial, forceThreshold: Float, minContactDuration: Float
   ): Seq[Footfall] = {
-    val c3do = motion.c3d.valueOr { t: Throwable => throw t }  // currently, throw exceptions
+    val c3do = motion.c3d
     for {
       intervalo <- PlateUtilsRichC3D(c3do).contactIntervals(forceThreshold, minContactDuration)
       limbOpt   =  c3do.limbForContactInterval(static, intervalo)
@@ -124,6 +125,17 @@ object MarkerSet {
       val direction: Direction = motion.direction
       val limb: Limb = limbOpt.get
     }
+  }
+
+  /**
+   * Finds all footfalls, in all trials, for a given horse.
+   *
+   * @param dataStore data store from which to extract trials
+   * @param horse horse for which to find footfalls
+   * @return sequence of found footfalls
+   */
+  def footfalls(dataStore: DataStore, horse: Horse): Throwable \/ Seq[Footfall] = {
+    ???
   }
 
   implicit class RichC3D(c3d: C3D) {
