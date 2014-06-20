@@ -2,7 +2,7 @@ package pwa
 
 import scala.collection.immutable._
 
-import java.io.{File, FileWriter, Writer}
+import java.io.{IOException, File, FileWriter, Writer}
 
 import c3d._
 
@@ -13,10 +13,16 @@ import core.MarkerSet.{ footfalls, footfallsInTrial, peakForce }
 
 object PWA {
   
-  val OnlyOneHorse: Boolean = false /* flag to indicate only use one horse */ 
+  val OnlyOneHorse: Boolean = false /* flag to indicate only use one horse */
 
-  val outDir: File = new File("/Users/jsm/Documents/dev/circlestudy/output/pwa")
   val dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/data")
+
+  val baseOutDir: File = new File("/Users/jsm/Documents/dev/circlestudy/output")
+  val tsOutDir: File = OutputManager(baseOutDir).createTimeStampOutputDir.valueOr { s: String =>
+    throw new IOException(s)
+  }
+  val outDir: File = new File(tsOutDir, "pwa")
+
   val forceThreshold: Float = 150.0f // N
   val minContactDuration: Float = 0.1f // s
 

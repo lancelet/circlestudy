@@ -2,12 +2,12 @@ package core
 
 import java.io.File
 
-import org.joda.time.DateTime
+//import org.joda.time.DateTime
 
 import scalaz._, Scalaz._
 
 
-class OutputManager(outputDir: File = new File("/Users/jsm/Documents/dev/circlestudy/output")) {
+case class OutputManager(outputDir: File) {
 
   /**
    * Creates a date and time stamped output directory.
@@ -21,6 +21,7 @@ class OutputManager(outputDir: File = new File("/Users/jsm/Documents/dev/circles
    * @return date and time stamped output directory
    */
   def createTimeStampOutputDir: String \/ File = {
+    /*
     val now: DateTime = DateTime.now()
 
     val yr = f"${now.getYear}%4d"
@@ -40,6 +41,9 @@ class OutputManager(outputDir: File = new File("/Users/jsm/Documents/dev/circles
     } else {
       dir.right
     }
+    */
+
+    new File(outputDir, "temp").right  // temporary hack for airplane
   }
 
 }
