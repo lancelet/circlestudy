@@ -33,6 +33,9 @@ case class OutputManager(outputDir: File) {
     val name = s"${yr}${mo}${dy}T${hr}${mn}${sc}"
 
     val dir = new File(outputDir, name)
+    */
+
+    val dir = new File(outputDir, "temp") // temporary hack for airplane
 
     if (dir.exists) {
       s"Directory ${dir.getCanonicalPath.toString} already exists".left
@@ -41,9 +44,7 @@ case class OutputManager(outputDir: File) {
     } else {
       dir.right
     }
-    */
 
-    new File(outputDir, "temp").right  // temporary hack for airplane
   }
 
 }
