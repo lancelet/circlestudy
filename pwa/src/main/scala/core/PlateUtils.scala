@@ -113,7 +113,7 @@ object PlateUtils {
           val on  = f.indexWhere(_ >= forceThreshold, idx)
           val off = f.indexWhere(_ <  forceThreshold, on)
 
-          if (on == -1 || off == 1) cs.reverse
+          if (on == -1 || off == -1) cs.reverse
           else go(ContactInterval(on, off, plate) :: cs, off)
         }
 
