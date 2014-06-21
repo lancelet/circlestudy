@@ -226,7 +226,7 @@ object MarkerSet {
 
       (staticPts zip staticRefs)
         .map { case (staticPt, staticRef) =>
-          VirtualPoint(staticPt.name, "", staticRef, staticRefs, motionPts)
+          VirtualPoint(staticPt.name, staticPt.description, staticRef, staticRefs, motionPts)
         }
         .map { new MemoizedPoint(_) }
     }
@@ -304,7 +304,7 @@ object MarkerSet {
         val hoofPts = c3d.hoofPointsForLimb(limb, static)
         def middleAvg(ptName: String): Option[Vec3D] =
           hoofPts
-            .find(_.name.contains(ptName))
+            .find(pt => pt.name.contains(ptName) || pt.description.contains(ptName))
             .map(averagePt(_, interval.percent20, interval.percent80))
         for {
           med <- middleAvg("HoofMedquarter")
