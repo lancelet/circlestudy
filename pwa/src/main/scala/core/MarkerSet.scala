@@ -328,15 +328,15 @@ object MarkerSet {
     def t6CircleThrough3Points: Circle = {
       val t6 = DataStoreRichC3D(c3d).getCSPoint("T6").get
 
-      val sta = t6.indexWhere(_.isDefined)
-      val end = t6.lastIndexWhere(_.isDefined)
-      val mid = t6.indexWhere(_.isDefined, (sta + end) / 2)
+      val staIdx = t6.indexWhere(_.isDefined)
+      val endIdx = t6.lastIndexWhere(_.isDefined)
+      val midIdx = t6.indexWhere(_.isDefined, (staIdx + endIdx) / 2)
 
-      circleThrough3Points(
-        Vec2D.fromVec3Dxy(t6(sta).get),
-        Vec2D.fromVec3Dxy(t6(mid).get),
-        Vec2D.fromVec3Dxy(t6(end).get)
-      )
+      val p1 = t6(staIdx).get
+      val p2 = t6(midIdx).get
+      val p3 = t6(endIdx).get
+
+      circleThrough3Points(Vec2D.fromVec3Dxy(p1), Vec2D.fromVec3Dxy(p2), Vec2D.fromVec3Dxy(p3))
     }
 
     /**
