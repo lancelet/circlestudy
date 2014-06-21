@@ -50,7 +50,7 @@ object PWA {
     }
     
     // export stride data for Sandra
-    if (true) {
+    if (false) {
       val curHorses: Seq[Horse] = dataStore.horses(if (OnlyOneHorse) Seq(Horse(3)) else Seq.empty)
       val strideDataDir: File = new File(tsOutDir, "stride-timings")
       strideDataDir.mkdirs()
@@ -85,12 +85,14 @@ object PWA {
       }
     }
 
-    // export all motion trials for all horses
-    if (false) {
-      val curHorses: Seq[Horse] = Seq(Horse(9))
-      val imgDir = new File(outDir, "renderMotionTrial")
-      def outFile(source: String): File = 
-        new File(outDir, s"trialMovies/${(new File(source)).getName.dropRight(4)}.m4v")
+    // export movies of all motion trials for all horses (needs ffmpeg to be installed)
+    if (true) {
+      println("Exporting movies of all motion trials for all horses")
+      val curHorses: Seq[Horse] = dataStore.horses(if (OnlyOneHorse) Seq(Horse(3)) else Seq.empty)
+      val imgDir = new File(tsOutDir, "renderMotionTrial"); imgDir.mkdirs()
+      val tmDir = new File(tsOutDir, "trialMovies"); tmDir.mkdirs()
+      def outFile(source: String): File =
+        new File(tmDir, s"${new File(source).getName.dropRight(4)}.m4v")
       for {
         horse: Horse <- curHorses
         static: C3D = dataStore.staticTrial(horse).valueOr { t: Throwable => throw t }
