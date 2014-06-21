@@ -183,8 +183,6 @@ object MarkerSet {
     /**
      * Finds the points on the hoof of a limb that should be present in a motion trial.
      *
-     * This should be called on a motion C3D trial.
-     *
      * @param limb limb for which to find the hoof points
      * @return points that should be present on the hoof during a motion trial
      */
@@ -202,7 +200,7 @@ object MarkerSet {
      * @param limb limb for which to find the hoof points
      * @return points that should be present on the hoof during a static trial
      */
-    def staticHoofPointsForLimb(limb: Limb): IndexedSeq[Point] =
+    def staticVirtualHoofPointsForLimb(limb: Limb): IndexedSeq[Point] =
       virtualHoofMarkerNames
         .map(nameOfHoofMarkerOnLimb(limb, _))
         .map(DataStoreRichC3D(c3d).getCSPoint(_).get)
@@ -221,14 +219,15 @@ object MarkerSet {
      */
     def virtualHoofPointsForLimb(limb: Limb, static: C3D): Seq[Point] = {
       val motionPts = c3d.motionHoofPointsForLimb(limb)
-      val staticPts = static.staticHoofPointsForLimb(limb)
-      val staticRefs = staticPts.map(averagePt)
+      val staticMotionRefs = static.motionHoofPointsForLimb(limb).map(averagePt)
+      val staticVirtualPts = static.staticVirtualHoofPointsForLimb(limb)
 
-      (staticPts zip staticRefs)
-        .map { case (staticPt, staticRef) =>
-          VirtualPoint(staticPt.name, staticPt.description, staticRef, staticRefs, motionPts)
-        }
-        .map { new MemoizedPoint(_) }
+      staticVirtualPts map { virtualPt: Point =>
+        val refPos = averagePt(virtualPt)
+        val vp =
+          VirtualPoint(virtualPt.name, virtualPt.description, refPos, staticMotionRefs, motionPts)
+        new MemoizedPoint(vp)
+      }
     }
 
     /**
@@ -312,7 +311,7 @@ object MarkerSet {
           dor <- middleAvg("HoofToe")
         } yield new HoofCoordsInWorld {
           val originInWorld: Vec3D = ((med + lat) / 2.0f).projectToZ
-          val yVecInWorld: Vec3D   = (dor - originInWorld).projectToZ.asUnit
+          val yVecInWorld: Vec3D   = (dor.projectToZ - originInWorld).asUnit
           val xVecInWorld: Vec3D   = Rot2D(math.toRadians(-90)).asRotationMatrix(yVecInWorld)
         }
       }
@@ -355,16 +354,16 @@ object MarkerSet {
       val t6 = DataStoreRichC3D(c3d).getCSPoint("T6").get
       val sta = t6.indexWhere(_.isDefined)
       val end = t6.lastIndexWhere(_.isDefined)
-      val pSta = t6(sta).get
-      val pEnd = t6(end).get
+      val pSta = Vec2D.fromVec3Dxy(t6(sta).get)
+      val pEnd = Vec2D.fromVec3Dxy(t6(end).get)
       val dT = (end - sta) / c3d.points.rate
 
       def straight: Float = (pEnd - pSta).mag / dT
 
       def circles: Float = {
         val circle = c3d.t6CircleThrough3Points
-        val aSta = Vec2D.fromVec3Dxy(pSta).angle
-        val aEnd = Vec2D.fromVec3Dxy(pEnd).angle
+        val aSta = (pSta - circle.origin).angle
+        val aEnd = (pEnd - circle.origin).angle
         (aEnd - aSta) * circle.radius / dT
       }
 

@@ -13,7 +13,7 @@ import core.MarkerSet.{ footfalls, footfallsInTrial, peakForce }
 
 object PWA {
   
-  val OnlyOneHorse: Boolean = false /* flag to indicate only use one horse */
+  val OnlyOneHorse: Boolean = true /* flag to indicate only use one horse */
 
   val dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/data")
 
@@ -86,7 +86,7 @@ object PWA {
     }
 
     // export movies of all motion trials for all horses (needs ffmpeg to be installed)
-    if (true) {
+    if (false) {
       println("Exporting movies of all motion trials for all horses")
       val curHorses: Seq[Horse] = dataStore.horses(if (OnlyOneHorse) Seq(Horse(3)) else Seq.empty)
       val imgDir = new File(tsOutDir, "renderMotionTrial"); imgDir.mkdirs()
@@ -105,11 +105,13 @@ object PWA {
       } Viz.make_movie(c3d, outFile(c3d.source), imgDir, 4000.0f, trialFootfalls, hoofPoints, segmentCOMs, bodyCOM)
     }
 
-    if (false) {
+    if (true) {
       import Direction._
-      
+
+      println("Exporting table of PWA footfalls")
+
       // file for a table of footfalls
-      val pwaTable: Writer = new FileWriter(new File("/Users/jsm/Documents/dev/circlestudy/output/pwa/pwaTable.csv"))
+      val pwaTable: Writer = new FileWriter(new File(tsOutDir, "pwaTable.csv"))
       pwaTable.write("File Name,Horse ID,Direction,isCircle,Gait,Limb,isForelimb,Plate Number,")
       pwaTable.write("PWA x,PWA y,Out,Radius,Speed,isOuterLimb,F Peak\n")
       pwaTable.flush()

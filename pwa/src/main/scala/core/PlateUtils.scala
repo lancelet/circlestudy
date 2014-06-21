@@ -16,6 +16,7 @@ import pwa.Geom.{Vec2D, Quadrilateral}
 case class ContactInterval (on: Int, off: Int, plate: ForcePlate) {
   require(off > on, s"ContactInterval requires off ($off) to be > on ($on)")
   def range: Int = off - on
+  assert(range > 0, "range must be > 0")
   def fraction(f: Float): Int = on + (range * f).toInt
   lazy val percent20: Int = fraction(0.2f)
   lazy val percent80: Int = fraction(0.8f)
@@ -68,6 +69,8 @@ object PlateUtils {
     /**
      * Finds the factor required to convert from the sample rate of force platforms to the sample
      * rate of 3D points.
+     *
+     * This is the force platform sampling rate divided by the point sampling rate.
      *
      * @return factor to divide force plate samples by in order to obtain 3D point samples
      */
