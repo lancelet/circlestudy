@@ -52,11 +52,13 @@ object PWA {
     // export stride data for Sandra
     if (true) {
       val curHorses: Seq[Horse] = dataStore.horses(if (OnlyOneHorse) Seq(Horse(3)) else Seq.empty)
-      val strideDataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/output/stride-timings")
+      val strideDataDir: File = new File(tsOutDir, "stride-timings")
+      strideDataDir.mkdirs()
       def csvFileNameFromC3DFileName(c3dFileName: String): String = {
         val f = new File(c3dFileName)
         f.getName().dropRight(3) ++ "csv"
       }
+      println("Exporting stride data for Sandra")
       for {
         horse <- curHorses
         footfallsByC3DFile: Map[String,Seq[Footfall]] = footfalls(
