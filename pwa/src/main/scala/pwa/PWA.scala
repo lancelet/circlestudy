@@ -86,11 +86,11 @@ object PWA {
     }
 
     // export movies of all motion trials for all horses (needs ffmpeg to be installed)
-    if (false) {
+    if (true) {
       println("Exporting movies of all motion trials for all horses")
       val curHorses: Seq[Horse] = dataStore.horses(if (OnlyOneHorse) Seq(Horse(3)) else Seq.empty)
-      val imgDir = new File(tsOutDir, "renderMotionTrial"); imgDir.mkdirs()
-      val tmDir = new File(tsOutDir, "trialMovies"); tmDir.mkdirs()
+      val imgDir = new File(outDir, "renderMotionTrial"); imgDir.mkdirs()
+      val tmDir = new File(outDir, "trialMovies"); tmDir.mkdirs()
       def outFile(source: String): File =
         new File(tmDir, s"${new File(source).getName.dropRight(4)}.m4v")
       for {
@@ -105,7 +105,7 @@ object PWA {
       } Viz.make_movie(c3d, outFile(c3d.source), imgDir, 4000.0f, trialFootfalls, hoofPoints, segmentCOMs, bodyCOM)
     }
 
-    if (true) {
+    if (false) {
       import Direction._
 
       println("Exporting table of PWA footfalls")

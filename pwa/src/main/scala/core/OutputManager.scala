@@ -2,7 +2,7 @@ package core
 
 import java.io.File
 
-//import org.joda.time.DateTime
+import org.joda.time.DateTime
 
 import scalaz._, Scalaz._
 
@@ -21,7 +21,6 @@ case class OutputManager(outputDir: File) {
    * @return date and time stamped output directory
    */
   def createTimeStampOutputDir: String \/ File = {
-    /*
     val now: DateTime = DateTime.now()
 
     val yr = f"${now.getYear}%4d"
@@ -33,9 +32,8 @@ case class OutputManager(outputDir: File) {
     val name = s"${yr}${mo}${dy}T${hr}${mn}${sc}"
 
     val dir = new File(outputDir, name)
-    */
 
-    val dir = new File(outputDir, "temp") // temporary hack for airplane
+    //val dir = new File(outputDir, "temp") // temporary hack for airplane
 
     if (dir.exists) {
       s"Directory ${dir.getCanonicalPath.toString} already exists".left
