@@ -51,7 +51,7 @@ class DataStore(dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/d
    * @param horse horse for which to obtain the motion trials
    * @return sequence of motion trials
    */
-  def motionTrials(horse: Horse): Throwable \/ Seq[MotionTrial] = {
+  def motionTrials(horse: Horse): Throwable \/ List[MotionTrial] = {
 
     // determines whether a file name matches one of the motion trials for the given horse
     def fileNameMatchesHorse(name: String): Boolean = {
@@ -125,7 +125,7 @@ class DataStore(dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/d
    * @param useOnly return only these horses if they have trials
    * @return sequence of horses
    */
-  def horses(useOnly: Seq[Horse] = Seq.empty[Horse]): Seq[Horse] = {
+  def horses(useOnly: Seq[Horse] = Seq.empty[Horse]): List[Horse] = {
 
     def allHorsesOnDisk: Seq[Horse] = {
       val subdirs: Seq[File] = dataDir.listFiles.to[Seq].filter(_.isDirectory)
@@ -140,9 +140,15 @@ class DataStore(dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/d
     val ids = useOnly.map(_.id)
     def keepHorse(h: Horse): Boolean = if (useOnly.isEmpty) true else ids.contains(h.id)
 
-    allHorsesOnDisk.filter(keepHorse)
+    allHorsesOnDisk.filter(keepHorse).toList
 
   }
+
+  def allMotionTrials: Throwable \/ List[MotionTrial] =
+    horses()
+      .right[Throwable]
+      .flatMap(_.map(motionTrials).sequenceU)
+      .map(_.flatten)
 
 }
 
