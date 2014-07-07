@@ -2,9 +2,12 @@ package pwa
 
 import java.io.{FileWriter, IOException, File}
 
-import scala.collection.immutable._
+import pwa.Geom.{Vec2D, Circle}
 
-import c3d.{Vec3D, C3D}
+import scala.collection.immutable._
+import scala.math.Pi
+
+import c3d.{Point, Vec3D, C3D}
 import core._
 
 import scalaz._, Scalaz._
@@ -46,7 +49,13 @@ object ExportForcesInCircleCoords extends App {
   } yield {
     for {
       (horse, footfall) <- hfootfalls
+      if footfall.direction.isCircle
+      com               =  memoizedCOM(horse, footfall)
+      comCircleDisj     =  \/.fromTryCatch(memoizedCOMCircle(com))
+      if comIsDefinedForFootfall(footfall, com)
+      if comCircleDisj.isRight
     } {
+      val comCircle = comCircleDisj.getOrElse(throw new Exception("comCircleDisj should be defined"))
       val fw = new FileWriter(new File(tsOutDir, fileName(horse, footfall)))
 
       // Header
@@ -68,11 +77,14 @@ object ExportForcesInCircleCoords extends App {
         .resampleByAveraging(c3d.fpToPtFactor)
 
       for {
-        frame <- footfall.interval.on until footfall.interval.off
-        fRaw  =  rawForces(frame)
+        frame   <- footfall.interval.on until footfall.interval.off
+        fRaw    =  rawForces(frame)
+        comVec  =  com(frame).get
+        fCircle =  forceToCircle(comCircle)(comVec, fRaw)
       } {
         fw.csvLine(frame.toString,
-                   fRaw.x.toString, fRaw.y.toString, fRaw.z.toString)
+          fRaw.x.toString, fRaw.y.toString, fRaw.z.toString,
+          fCircle.radial.toString, fCircle.tangential.toString, fCircle.vertical.toString)
       }
 
       fw.close
@@ -102,5 +114,21 @@ object ExportForcesInCircleCoords extends App {
   implicit class RichWriter(w: FileWriter) {
     def csvLine(items: String*): Unit = w.write(s"${items.mkString(",")}\n")
   }
+
+  final case class CircleForce(radial: Float, tangential: Float, vertical: Float)
+
+  def forceToCircle(comCircle: Circle)(pt: Vec3D, f: Vec3D): CircleForce = {
+    // angle of point on circle
+    val angle = (Vec2D.fromVec3Dxy(pt) - comCircle.origin).angle
+    // unit vectors
+    val radUnit = Vec2D.fromPolar(1.0f, angle).asVec3D
+    val tanUnit = Vec2D.fromPolar(1.0f, (angle + (Pi / 2.0)).toFloat).asVec3D
+    val verUnit = Vec3D(0, 0, 1)
+    // dot the force vector against the unit vectors to find the force components
+    CircleForce(radial = f dot radUnit, tangential = f dot tanUnit, vertical = f dot verUnit)
+  }
+
+  def comIsDefinedForFootfall(f: Footfall, com: Point): Boolean =
+    (f.interval.on until f.interval.off).forall(com(_).isDefined)
 
 }
