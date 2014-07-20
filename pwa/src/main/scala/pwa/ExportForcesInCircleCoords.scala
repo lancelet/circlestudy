@@ -65,9 +65,12 @@ object ExportForcesInCircleCoords extends App {
         "Direction:", footfall.direction.toString,
         "Trial Number:", trialNumber(footfall.c3d).toString,
         "Limb:", footfall.limb.toString,
-        "Plate:", footfall.plateNumber.toString)
+        "Plate:", footfall.plateNumber.toString,
+        "Circle Center x (mm):", comCircle.origin.x.toString,
+        "Circle Center y (mm):", comCircle.origin.y.toString,
+        "Circle Radius (mm):", comCircle.radius.toString)
       fw.csvLine("", "|--", "World (N)", "--|", "|--", "Cylindrical (N)", "--|")
-      fw.csvLine("Frame", "X", "Y", "Z", "Radial", "Tangential", "Vertical")
+      fw.csvLine("Frame", "X", "Y", "Z", "Radial", "Tangential", "Vertical", "Angle (rad)")
 
       // Force measurements
       val c3d = footfall.c3d
@@ -80,11 +83,12 @@ object ExportForcesInCircleCoords extends App {
         frame   <- footfall.interval.on until footfall.interval.off
         fRaw    =  rawForces(frame)
         comVec  =  com(frame).get
-        fCircle =  forceToCircle(comCircle)(comVec, fRaw)
+        fCircle =  forceToCircle(footfall, comCircle)(comVec, fRaw)
       } {
         fw.csvLine(frame.toString,
           fRaw.x.toString, fRaw.y.toString, fRaw.z.toString,
-          fCircle.radial.toString, fCircle.tangential.toString, fCircle.vertical.toString)
+          fCircle.radial.toString, fCircle.tangential.toString, fCircle.vertical.toString,
+          fCircle.angle.toString)
       }
 
       fw.close
@@ -115,17 +119,27 @@ object ExportForcesInCircleCoords extends App {
     def csvLine(items: String*): Unit = w.write(s"${items.mkString(",")}\n")
   }
 
-  final case class CircleForce(radial: Float, tangential: Float, vertical: Float)
+  final case class CircleForce(radial: Float, tangential: Float, vertical: Float, angle: Float)
 
-  def forceToCircle(comCircle: Circle)(pt: Vec3D, f: Vec3D): CircleForce = {
+  def forceToCircle(footfall: Footfall, comCircle: Circle)(pt: Vec3D, f: Vec3D): CircleForce = {
+    // rotation angle between radial vector and forward vector
+    val tanUnitAngle = footfall.direction match {
+      case Direction.CircleLeft  =>  (Pi / 2.0).toFloat
+      case Direction.CircleRight => -(Pi / 2.0).toFloat
+      case _                     => throw new Exception("direction must be a circle")
+    }
     // angle of point on circle
     val angle = (Vec2D.fromVec3Dxy(pt) - comCircle.origin).angle
     // unit vectors
     val radUnit = Vec2D.fromPolar(1.0f, angle).asVec3D
-    val tanUnit = Vec2D.fromPolar(1.0f, (angle + (Pi / 2.0)).toFloat).asVec3D
+    val tanUnit = Vec2D.fromPolar(1.0f, angle + tanUnitAngle).asVec3D
     val verUnit = Vec3D(0, 0, 1)
+    assert((radUnit dot tanUnit) < 1e-5f)
+    assert((radUnit dot verUnit) < 1e-5f)
+    assert((tanUnit dot verUnit) < 1e-5f)
     // dot the force vector against the unit vectors to find the force components
-    CircleForce(radial = f dot radUnit, tangential = f dot tanUnit, vertical = f dot verUnit)
+    CircleForce(radial = f dot radUnit, tangential = f dot tanUnit, vertical = f dot verUnit,
+                angle = angle)
   }
 
   def comIsDefinedForFootfall(f: Footfall, com: Point): Boolean =
