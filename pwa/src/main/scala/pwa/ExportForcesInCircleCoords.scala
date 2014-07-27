@@ -44,6 +44,55 @@ object ExportForcesInCircleCoords extends App {
       )
       .map(_.flatten)
 
+  val resultStraight: Throwable \/ Unit = for {
+    tsOutDir   <- tsOutDirDisj
+    hfootfalls <- footfallsDisj
+  } yield {
+    for {
+      (horse, footfall) <- hfootfalls
+      if !footfall.direction.isCircle
+    } {
+      val fw = new FileWriter(new File(tsOutDir, fileName(horse, footfall)))
+
+      // Header
+      fw.csvLine(s"C3D source file: ${footfall.c3d.source}")
+      fw.csvLine("Horse:", horse.id.toString,
+        "Gait:", footfall.gait.toString,
+        "Direction:", footfall.direction.toString,
+        "Trial Number:", trialNumber(footfall.c3d).toString,
+        "Limb:", footfall.limb.toString,
+        "Plate:", footfall.plateNumber.toString,
+        "Sample Freq (Hz):", "100",
+        "Foot on (sample number):", footfall.interval.on.toString,
+        "Foot off (sample number):", footfall.interval.off.toString)
+      fw.csvLine("", "|--", "World (N)", "--|", "|--", "Cylindrical (N)", "--|")
+      fw.csvLine("Frame", "X", "Y", "Z")
+
+      // Force measurements
+      val c3d = footfall.c3d
+      val plate = c3d.platforms.plates(footfall.plateNumber - 1)  // NOTE: zero-based index
+      val rawForces: IndexedSeq[Vec3D] = plate
+          .force
+          .resampleByAveraging(c3d.fpToPtFactor)
+
+      // go 20 frames before the start, and 20 frames after the end (limited to the trial range)
+      val fromFrame = math.max(0,
+        footfall.interval.on  - extendByNSamples)
+      val toFrame   = math.min(c3d.points.totalSamples - 1,
+        footfall.interval.off + extendByNSamples)
+
+      for {
+        frame   <- fromFrame until toFrame
+        fRaw    =  rawForces(frame)
+      } {
+        fw.csvLine(frame.toString,
+          fRaw.x.toString, fRaw.y.toString, fRaw.z.toString)
+      }
+
+      fw.close
+    }
+  }
+
   val resultCircle: Throwable \/ Unit = for {
     tsOutDir   <- tsOutDirDisj
     hfootfalls <- footfallsDisj
@@ -51,9 +100,13 @@ object ExportForcesInCircleCoords extends App {
     for {
       (horse, footfall) <- hfootfalls
       if footfall.direction.isCircle
+      c3d               = footfall.c3d
       com               =  memoizedCOM(horse, footfall)
       comCircleDisj     =  \/.fromTryCatch(memoizedCOMCircle(com))
-      if comIsDefinedForFootfall(footfall, com)
+      // go 20 frames before the start, and 20 frames after the end (limited to the trial range)
+      fromFrame = math.max(0, footfall.interval.on  - extendByNSamples)
+      toFrame   = math.min(c3d.points.totalSamples - 1, footfall.interval.off + extendByNSamples)
+      if comIsDefinedFor(com, fromFrame, toFrame)
       if comCircleDisj.isRight
     } {
       val comCircle = comCircleDisj.getOrElse(throw new Exception("comCircleDisj should be defined"))
@@ -77,17 +130,10 @@ object ExportForcesInCircleCoords extends App {
       fw.csvLine("Frame", "X", "Y", "Z", "Radial", "Tangential", "Vertical", "Angle (rad)")
 
       // Force measurements
-      val c3d = footfall.c3d
       val plate = c3d.platforms.plates(footfall.plateNumber - 1)  // NOTE: zero-based index
       val rawForces: IndexedSeq[Vec3D] = plate
         .force
         .resampleByAveraging(c3d.fpToPtFactor)
-
-      // go 20 frames before the start, and 20 frames after the end (limited to the trial range)
-      val fromFrame = math.max(0,
-                               footfall.interval.on  - extendByNSamples)
-      val toFrame   = math.min(c3d.points.totalSamples - 1,
-                               footfall.interval.off + extendByNSamples)
 
       for {
         frame   <- fromFrame until toFrame
@@ -152,7 +198,12 @@ object ExportForcesInCircleCoords extends App {
                 angle = angle)
   }
 
+  def comIsDefinedFor(com: Point, fromSample: Int, toSample: Int): Boolean =
+    (fromSample until toSample).forall(com(_).isDefined)
+
+  /*
   def comIsDefinedForFootfall(f: Footfall, com: Point): Boolean =
     (f.interval.on until f.interval.off).forall(com(_).isDefined)
+  */
 
 }
