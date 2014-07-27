@@ -21,6 +21,7 @@ object ExportForcesInCircleCoords extends App {
 
   val forceThreshold: Float = 150.0f // N
   val minContactDuration: Float = 0.1f // s
+  val extendByNSamples: Int = 20 // number of samples
 
   val baseOutDir: File = new File("/Users/jsm/Documents/dev/circlestudy/output")
   val tsOutDirDisj: Throwable \/ File = OutputManager(baseOutDir)
@@ -43,7 +44,7 @@ object ExportForcesInCircleCoords extends App {
       )
       .map(_.flatten)
 
-  val result: Throwable \/ Unit = for {
+  val resultCircle: Throwable \/ Unit = for {
     tsOutDir   <- tsOutDirDisj
     hfootfalls <- footfallsDisj
   } yield {
@@ -68,7 +69,10 @@ object ExportForcesInCircleCoords extends App {
         "Plate:", footfall.plateNumber.toString,
         "Circle Center x (mm):", comCircle.origin.x.toString,
         "Circle Center y (mm):", comCircle.origin.y.toString,
-        "Circle Radius (mm):", comCircle.radius.toString)
+        "Circle Radius (mm):", comCircle.radius.toString,
+        "Sample Freq (Hz):", "100",
+        "Foot on (sample number):", footfall.interval.on.toString,
+        "Foot off (sample number):", footfall.interval.off.toString)
       fw.csvLine("", "|--", "World (N)", "--|", "|--", "Cylindrical (N)", "--|")
       fw.csvLine("Frame", "X", "Y", "Z", "Radial", "Tangential", "Vertical", "Angle (rad)")
 
@@ -79,8 +83,14 @@ object ExportForcesInCircleCoords extends App {
         .force
         .resampleByAveraging(c3d.fpToPtFactor)
 
+      // go 20 frames before the start, and 20 frames after the end (limited to the trial range)
+      val fromFrame = math.max(0,
+                               footfall.interval.on  - extendByNSamples)
+      val toFrame   = math.min(c3d.points.totalSamples - 1,
+                               footfall.interval.off + extendByNSamples)
+
       for {
-        frame   <- footfall.interval.on until footfall.interval.off
+        frame   <- fromFrame until toFrame
         fRaw    =  rawForces(frame)
         comVec  =  com(frame).get
         fCircle =  forceToCircle(footfall, comCircle)(comVec, fRaw)
@@ -95,7 +105,7 @@ object ExportForcesInCircleCoords extends App {
     }
   }
 
-  result.valueOr(throw _)
+  resultCircle.valueOr(throw _)
 
   def fileName(horse: Horse, footfall: Footfall): String = {
     val hId   = horse.id
