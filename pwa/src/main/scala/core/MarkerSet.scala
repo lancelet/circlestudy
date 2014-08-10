@@ -268,17 +268,17 @@ object MarkerSet {
         Limb.RH -> "RHHoofDorsal",
         Limb.LH -> "LHHoofDorsal"
       )
-      val minLimb: List[(Limb, Float)] = limbMarkerNames
+
+      val distances: List[(Limb,Float)] = limbMarkerNames
         .map    { case (limb, name)     => limb -> DataStoreRichC3D(c3d).getCSPoint(name).get }
         .map    { case (limb, point)    => limb -> distanceAtImpact(point)                    }
         .filter { case (_   , opt)      => opt.isDefined                                      }
         .map    { case (limb, distance) => limb -> distance.get                               }
-        .sortBy { case (limb, distance) => distance                                           }
-      minLimb match {
-        case (limb, _) :: _ => Some(limb)
-        case _              => None
-      }
 
+      if (distances.isEmpty)
+        None
+      else
+        Some(distances.minBy { case (limb, distance) => distance }._1)
     }
 
     implicit class RichVec3D(v: Vec3D) {
