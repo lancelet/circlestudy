@@ -13,7 +13,7 @@ import core.MarkerSet.{ footfalls, footfallsInTrial, peakForce }
 
 object PWA {
   
-  val OnlyOneHorse: Boolean = true /* flag to indicate only use one horse */
+  val OnlyOneHorse: Boolean = false /* flag to indicate only use one horse */
 
   val dataDir: File = new File("/Users/jsm/Documents/dev/circlestudy/data")
 
@@ -50,7 +50,7 @@ object PWA {
     }
     
     // export stride data for Sandra
-    if (false) {
+    if (true) {
       val curHorses: Seq[Horse] = dataStore.horses(if (OnlyOneHorse) Seq(Horse(3)) else Seq.empty)
       val strideDataDir: File = new File(tsOutDir, "stride-timings")
       strideDataDir.mkdirs()
@@ -59,6 +59,7 @@ object PWA {
         f.getName().dropRight(3) ++ "csv"
       }
       println("Exporting stride data for Sandra")
+      println(if (OnlyOneHorse) "(for only one horse)" else "(for all horses)")
       for {
         horse <- curHorses
         footfallsByC3DFile: Map[String,Seq[Footfall]] = footfalls(
@@ -72,21 +73,22 @@ object PWA {
         val w: Writer = new FileWriter(new File(strideDataDir, csvFileName))
         w.write(s"Source CSV file:,$c3dFileName\n")
         w.write(s"Force threshold (N):,$forceThreshold\n")
-        w.write("Limb,Stance start (sample number),Stance end (sample number)\n")
+        w.write("Limb,Stance start (sample number),Stance end (sample number),Plate number\n")
         for {
           footfall <- footfallsForCurrentC3DFile
-          limb = footfall.limb
-          start = footfall.interval.on
-          end = footfall.interval.off
+          limb     =  footfall.limb
+          start    =  footfall.interval.on
+          end      =  footfall.interval.off
+          plate    =  footfall.plateNumber
         } {
-          w.write(s"$limb,$start,$end\n")
+          w.write(s"$limb,$start,$end,$plate\n")
         }
         w.close()
       }
     }
 
     // export movies of all motion trials for all horses (needs ffmpeg to be installed)
-    if (true) {
+    if (false) {
       println("Exporting movies of all motion trials for all horses")
       val curHorses: Seq[Horse] = dataStore.horses(if (OnlyOneHorse) Seq(Horse(3)) else Seq.empty)
       val imgDir = new File(outDir, "renderMotionTrial"); imgDir.mkdirs()
