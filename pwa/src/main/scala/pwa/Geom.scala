@@ -89,7 +89,13 @@ object Geom {
     
     // find initial guess from 3 points
     val pt3circle = circleThrough3Points(xx(0), xx(xx.length / 2), xx.last)
-    val initialGuess = new InitialGuess(Array(pt3circle.origin.x, pt3circle.origin.y, pt3circle.radius)) // x,y,r
+    val initialGuess = new InitialGuess(
+      Array(
+        pt3circle.origin.x.toDouble,
+        pt3circle.origin.y.toDouble,
+        pt3circle.radius.toDouble
+      )
+    ) // x,y,r
     
     // general multi-variate optimisation
     val fitFunction: MultivariateFunction = new MultivariateFunction {
@@ -203,7 +209,7 @@ object Geom {
    */
   case class Quadrilateral(a: Vec2D, b: Vec2D, c: Vec2D, d: Vec2D) {
     private val tri1 = Triangle(a, b, c)
-    private val tri2 = Triangle(c, d, a)
+    private val tri2 = Triangle(a, c, d)
     def within(p: Vec2D): Boolean = tri1.within(p) || tri2.within(p)
   }
 
